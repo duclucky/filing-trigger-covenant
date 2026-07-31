@@ -1,0 +1,122 @@
+{
+  "network": "studionet",
+  "sourceCommit": "e9a6125b800e05ecf694cfc4b9d2f7e05bb5f6e9",
+  "contractAddress": "0x8D30E66a9A6446497A8857159F25935d134186B6",
+  "transactionHash": "0x881be1a87af9bf59f3da917e728e6afcdf53019c250d566d713e05c3ed542bda",
+  "result": "RECOVERED_SUPERSEDED_REVISION",
+  "timestamp": "2026-07-31T17:59:10.699Z",
+  "actorRoles": {
+    "sponsor": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+    "beneficiary": "0x45aD397c438397A702B53a7499a78D08961D39Db"
+  },
+  "covenantId": "cyber-001",
+  "claimAccession": "000143774926009193",
+  "transactions": {
+    "openCovenant": {
+      "transactionHash": "0xc23a8796b04de981c932dd8ad55dc965d98a810c3f63771454b4dbe0959d26ca",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:00:00.574Z"
+    },
+    "acceptCovenant": {
+      "transactionHash": "0x843fdbe001d880ff717a0bb763cede64223c83e3812a1460471659e36bd58ac7",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:00:42.735Z"
+    },
+    "openClaim": {
+      "transactionHash": "0x5c17d28f0b19f33b68048cddefc9073e97412ef25b37ece5a28c9142016a708b",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:01:23.852Z"
+    },
+    "adjudicateClaim": {
+      "transactionHash": "0x54357eddf237f89f488329e50049c2c82e67af01aad77836c5a457e61040273b",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:03:44.383Z"
+    },
+    "withdrawCredit": {
+      "transactionHash": "0x1442116c5e6363f40d302c5d32a1044447fb5462dfabecb276ec4a0a947d420f",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:04:28.200Z"
+    },
+    "proposeClose": {
+      "transactionHash": "0x3c1cdea5f17623a59727f3a7425447264297a62c3738b8b403cd97c77bc4f5dd",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:07:07.808Z"
+    },
+    "acceptClose": {
+      "transactionHash": "0xa1cc32df22f768c40f355c4bcf19abf364b6c406af6c20564fc5e54ea26b6efc",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:07:50.247Z"
+    },
+    "withdrawSponsorCredit": {
+      "transactionHash": "0x36be7c202700b2845a67cde8a20d081ceebd572a1b6377c87177d23d6bdfa916",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:08:34.254Z"
+    }
+  },
+  "canonicalReads": {
+    "status": "ACTIVE",
+    "covenant": {
+      "accepted": true,
+      "activation_date": "2026-01-01",
+      "active_claim_id": "",
+      "allowed_form": "8-K",
+      "allowed_item": "Item 1.05",
+      "beneficiary": "0x45ad397c438397a702b53a7499a78d08961d39db",
+      "cik": "732026",
+      "claim_bond_amount": 1000000000000000,
+      "close_proposed_by": "0x0000000000000000000000000000000000000000",
+      "escrow_remaining": "10000000000000000",
+      "expiry_date": "2026-12-31",
+      "payout_amount": "10000000000000000",
+      "sponsor": "0xc495ef51618d03267a1f227afe5b27b38c748272",
+      "status": "ACTIVE",
+      "trigger_kind": "MATERIAL_CYBER_INCIDENT",
+      "triggered_event_key": ""
+    },
+    "claim": {
+      "accession": "000143774926009193",
+      "claimant": "0x45ad397c438397a702b53a7499a78d08961d39db",
+      "consequence_class": "REFUND_CLAIM_BOND",
+      "covenant_id": "cyber-001",
+      "decisive_fact_ids": "",
+      "event_class": "UNKNOWN",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm",
+      "rationale": "The filing is a Form 8-K under Item 1.05 for CIK 732026. The text explicitly reports a cybersecurity incident involving ransomware and unauthorized disclosure of data. Management concluded on March 18, 2026, that the incident constitutes a material cybersecurity event, fulfilling the trigger requirements.",
+      "settled": true,
+      "source_stage": "SUFFICIENT",
+      "status": "RETRYABLE",
+      "verdict": "UNVERIFIABLE"
+    },
+    "beneficiaryCreditBeforeWithdraw": 1000000000000000,
+    "beneficiaryCreditAfterWithdraw": 0,
+    "accounting": {
+      "locked_claim_bonds": 0,
+      "locked_escrow": "10000000000000000",
+      "withdrawable_credits": 0
+    },
+    "closeRecovery": {
+      "status": "CLOSED",
+      "sponsorCreditBeforeWithdraw": "10000000000000000",
+      "sponsorCreditAfterWithdraw": 0,
+      "accounting": {
+        "locked_claim_bonds": 0,
+        "locked_escrow": 0,
+        "withdrawable_credits": 0
+      }
+    }
+  },
+  "limits": {
+    "noFrontend": true,
+    "contractOnlyTrack": true,
+    "evidenceIsSanitized": true
+  },
+  "archivedReason": "Source commit changed before redeploy"
+}

@@ -1,0 +1,93 @@
+{
+  "network": "studionet",
+  "sourceCommit": "8fa467af9b697de8bebb997565f7d50199b51f01",
+  "contractAddress": "0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB",
+  "transactionHash": "0x65a96e193ec8154217ca777514a398834af0d34e4cfa92c158535a2f59a833c7",
+  "result": "SUCCESS",
+  "timestamp": "2026-07-31T18:09:53.923Z",
+  "actorRoles": {
+    "sponsor": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+    "beneficiary": "0x45aD397c438397A702B53a7499a78D08961D39Db"
+  },
+  "covenantId": "cyber-001",
+  "claimAccession": "000143774926009193",
+  "transactions": {
+    "openCovenant": {
+      "transactionHash": "0xc38b4cc000842eb69ad563c9e4e9addb8257f8fd92e4468d370d490ef5ecc610",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:10:42.243Z"
+    },
+    "acceptCovenant": {
+      "transactionHash": "0xfe18bd7b18feb4ee054c7a4d24f75a60f8b7ee8ada72cb2e6fb56cbeb866dd39",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:11:25.907Z"
+    },
+    "openClaim": {
+      "transactionHash": "0x496473d8dfdd2e47ffce508548d24ecc782a5b2a59e5c01a69cae259e18909cb",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:12:08.053Z"
+    },
+    "adjudicateClaim": {
+      "transactionHash": "0x52ebcabfc89cef433b6d40cb52ed4b818e11cfa0d636510ac9eaf0b7e01a52c1",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:13:49.226Z"
+    },
+    "withdrawCredit": {
+      "transactionHash": "0x27b390af72021788f0d10c5dbbd6adfa70248397e3e18d2798860a08ede93cf6",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-07-31T18:14:32.641Z"
+    }
+  },
+  "canonicalReads": {
+    "status": "TRIGGERED",
+    "covenant": {
+      "accepted": true,
+      "activation_date": "2026-01-01",
+      "active_claim_id": "cyber-001:000143774926009193:1",
+      "allowed_form": "8-K",
+      "allowed_item": "Item 1.05",
+      "beneficiary": "0x45ad397c438397a702b53a7499a78d08961d39db",
+      "cik": "732026",
+      "claim_bond_amount": 1000000000000000,
+      "close_proposed_by": "0x0000000000000000000000000000000000000000",
+      "escrow_remaining": 0,
+      "expiry_date": "2026-12-31",
+      "payout_amount": "10000000000000000",
+      "sponsor": "0xc495ef51618d03267a1f227afe5b27b38c748272",
+      "status": "TRIGGERED",
+      "trigger_kind": "MATERIAL_CYBER_INCIDENT",
+      "triggered_event_key": "732026:000143774926009193:MATERIAL_CYBER_INCIDENT"
+    },
+    "claim": {
+      "accession": "000143774926009193",
+      "claimant": "0x45ad397c438397a702b53a7499a78d08961d39db",
+      "consequence_class": "PAY_BENEFICIARY",
+      "covenant_id": "cyber-001",
+      "decisive_fact_ids": "ITEM_1_05,MATERIAL_EVENT,UNAUTHORIZED_ACCESS",
+      "event_class": "MATERIAL_CYBER_INCIDENT",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm",
+      "rationale": "The filing is a Form 8-K filed under Item 1.05. The text explicitly states that a ransomware incident initially identified on March 11, 2026, escalated on March 18, 2026, resulting in unauthorized disclosure of Company data. Management concluded that the incident 'may constitute a material cybersecurity event.' The disclosure describes unauthorized access, containment measures, ongoing investigation, and potential material impact, satisfying the criteria for a MATERIAL_CYBER_INCIDENT trigger.",
+      "settled": true,
+      "source_stage": "SUFFICIENT",
+      "status": "RESOLVED",
+      "verdict": "TRIGGERED"
+    },
+    "beneficiaryCreditBeforeWithdraw": "11000000000000000",
+    "beneficiaryCreditAfterWithdraw": 0,
+    "accounting": {
+      "locked_claim_bonds": 0,
+      "locked_escrow": 0,
+      "withdrawable_credits": 0
+    }
+  },
+  "limits": {
+    "noFrontend": true,
+    "contractOnlyTrack": true,
+    "evidenceIsSanitized": true
+  }
+}

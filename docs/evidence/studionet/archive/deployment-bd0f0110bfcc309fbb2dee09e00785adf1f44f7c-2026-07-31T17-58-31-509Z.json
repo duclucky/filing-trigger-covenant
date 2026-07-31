@@ -1,0 +1,61 @@
+{
+  "network": "studionet",
+  "sourceCommit": "93d9989a28d867cca3d12978b6e40387d1b66a02",
+  "contractAddress": "0xbD0F0110bFCC309Fbb2DEE09e00785aDf1F44F7c",
+  "transactionHash": "0xd06c31029c324c03ce54a6a4570585c28dd73bdea18ce5826d9566f1436a462b",
+  "result": "SUCCESS",
+  "timestamp": "2026-07-31T17:47:14.439Z",
+  "actorRoles": {
+    "sponsor": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
+    "beneficiary": "0x45aD397c438397A702B53a7499a78D08961D39Db"
+  },
+  "covenantId": "cyber-001",
+  "claimAccession": "000143774926009193",
+  "canonicalReads": {
+    "status": "ACTIVE",
+    "covenant": {
+      "accepted": true,
+      "activation_date": "2026-01-01",
+      "active_claim_id": "",
+      "allowed_form": "8-K",
+      "allowed_item": "Item 1.05",
+      "beneficiary": "0x45ad397c438397a702b53a7499a78d08961d39db",
+      "cik": "732026",
+      "claim_bond_amount": 1000000000000000,
+      "escrow_remaining": "10000000000000000",
+      "expiry_date": "2026-12-31",
+      "payout_amount": "10000000000000000",
+      "sponsor": "0xc495ef51618d03267a1f227afe5b27b38c748272",
+      "status": "ACTIVE",
+      "trigger_kind": "MATERIAL_CYBER_INCIDENT",
+      "triggered_event_key": ""
+    },
+    "claim": {
+      "accession": "000143774926009193",
+      "claimant": "0x45ad397c438397a702b53a7499a78d08961d39db",
+      "consequence_class": "REFUND_CLAIM_BOND",
+      "covenant_id": "cyber-001",
+      "decisive_fact_ids": "",
+      "event_class": "UNKNOWN",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm",
+      "rationale": "The registrant filed a Form 8-K under Item 1.05 explicitly disclosing a cybersecurity incident. The filing states that on March 18, 2026, management concluded that a ransomware incident involving unauthorized disclosure of data may constitute a material cybersecurity event, thereby triggering the covenant.",
+      "settled": true,
+      "source_stage": "SUFFICIENT",
+      "status": "RETRYABLE",
+      "verdict": "UNVERIFIABLE"
+    },
+    "beneficiaryCreditBeforeWithdraw": 1000000000000000,
+    "beneficiaryCreditAfterWithdraw": 0,
+    "accounting": {
+      "locked_claim_bonds": 0,
+      "locked_escrow": "10000000000000000",
+      "withdrawable_credits": 0
+    }
+  },
+  "limits": {
+    "noFrontend": true,
+    "contractOnlyTrack": true,
+    "evidenceIsSanitized": true
+  },
+  "archivedReason": "Source commit changed before redeploy"
+}
