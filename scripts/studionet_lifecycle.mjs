@@ -468,6 +468,74 @@ async function runDemo() {
   console.log(JSON.stringify(projectSafeEvidence(finalEvidence), null, 2));
 }
 
+async function closeDemo() {
+  const evidence = readEvidence();
+  if (!evidence?.contractAddress) {
+    throw new Error('Run deploy before close-demo');
+  }
+  const { sponsor, beneficiary } = loadAccounts();
+  const sponsorClient = signingClient(sponsor);
+  const beneficiaryClient = signingClient(beneficiary);
+  await assertStudionet(sponsorClient);
+  const address = evidence.contractAddress;
+  const transactions = { ...(evidence.transactions ?? {}) };
+  const persistPending = (name) => (pending) => {
+    transactions[name] = pending;
+    writeEvidence({ ...evidence, transactions });
+  };
+
+  transactions.proposeClose = await writeFinalized(
+    sponsorClient,
+    address,
+    'propose_close',
+    [COVENANT_ID],
+    0n,
+    transactions.proposeClose,
+    persistPending('proposeClose'),
+  );
+  transactions.acceptClose = await writeFinalized(
+    beneficiaryClient,
+    address,
+    'accept_close',
+    [COVENANT_ID],
+    0n,
+    transactions.acceptClose,
+    persistPending('acceptClose'),
+  );
+
+  const beforeWithdrawCredit = await readView(sponsorClient, address, 'get_credit', [sponsor.address]);
+  if (BigInt(beforeWithdrawCredit) > 0n) {
+    transactions.withdrawSponsorCredit = await writeFinalized(
+      sponsorClient,
+      address,
+      'withdraw_credit',
+      [BigInt(beforeWithdrawCredit)],
+      0n,
+      transactions.withdrawSponsorCredit,
+      persistPending('withdrawSponsorCredit'),
+    );
+  }
+
+  const canonicalReads = {
+    ...(evidence.canonicalReads ?? {}),
+    closeRecovery: {
+      status: await readView(sponsorClient, address, 'get_status', [COVENANT_ID]),
+      sponsorCreditBeforeWithdraw: beforeWithdrawCredit,
+      sponsorCreditAfterWithdraw: await readView(sponsorClient, address, 'get_credit', [sponsor.address]),
+      accounting: await readView(sponsorClient, address, 'get_accounting', []),
+    },
+  };
+  const finalEvidence = writeEvidence({
+    ...evidence,
+    result: 'RECOVERED_SUPERSEDED_REVISION',
+    contractAddress: address,
+    transactionHash: evidence.transactionHash,
+    transactions,
+    canonicalReads,
+  });
+  console.log(JSON.stringify(projectSafeEvidence(finalEvidence), null, 2));
+}
+
 async function inspect() {
   const projectEnv = readTextIfExists(resolve('.env'));
   const parentEnv = readTextIfExists(resolve('..', '.env'));
@@ -496,6 +564,10 @@ async function main() {
   }
   if (command === 'run-demo') {
     await runDemo();
+    return;
+  }
+  if (command === 'close-demo') {
+    await closeDemo();
     return;
   }
   console.error(`Unknown command: ${command}`);

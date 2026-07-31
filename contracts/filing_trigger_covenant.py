@@ -230,6 +230,13 @@ def _derive_fact_ids(source_text: str, trigger_kind: str, allowed_item: str) -> 
     return _canonical_fact_ids(result)
 
 
+def _bool_or_derive(parsed: dict, key: str, fallback: bool) -> bool:
+    value = parsed.get(key, None)
+    if isinstance(value, bool):
+        return value
+    return fallback
+
+
 def _normalize_sec_result(
     raw,
     source_stage: str,
@@ -256,15 +263,15 @@ def _normalize_sec_result(
 
     verdict = str(parsed.get("verdict", "UNVERIFIABLE")).upper()
     event_class = str(parsed.get("event_class", "UNKNOWN")).upper()
-    item_covered = (
-        parsed.get("item_covered", None) is True
-        if "item_covered" in parsed
-        else _derive_item_covered(source_text, allowed_item)
+    item_covered = _bool_or_derive(
+        parsed,
+        "item_covered",
+        _derive_item_covered(source_text, allowed_item),
     )
-    form_covered = (
-        parsed.get("form_covered", None) is True
-        if "form_covered" in parsed
-        else _derive_form_covered(source_text, allowed_form, item_covered)
+    form_covered = _bool_or_derive(
+        parsed,
+        "form_covered",
+        _derive_form_covered(source_text, allowed_form, item_covered),
     )
     raw_facts = parsed.get("decisive_fact_ids", [])
     decisive_fact_ids = _canonical_fact_ids(raw_facts)
@@ -275,8 +282,7 @@ def _normalize_sec_result(
     schema_valid = (
         verdict in VERDICTS
         and isinstance(parsed.get("rationale", ""), str)
-        and isinstance(raw_facts, list)
-        and len(raw_facts) <= 12
+        and (not isinstance(raw_facts, list) or len(raw_facts) <= 12)
     )
     if event_class not in EVENT_CLASSES:
         event_class = "UNKNOWN"
