@@ -7,7 +7,7 @@
 - Project slug: filing-trigger-covenant
 - Category: Intelligent Contracts
 - Status: VALIDATED - IC TRACK / STUDIONET VERIFIED / NO FRONTEND
-- Repository: local `filing-trigger-covenant`
+- Repository: https://github.com/duclucky/filing-trigger-covenant
 - Target network: studionet
 - Active Studionet contract: `0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB`
 - Source commit: `8fa467af9b697de8bebb997565f7d50199b51f01`

@@ -11,6 +11,7 @@ Status: Studionet verified for the Intelligent Contracts track. No frontend and 
 - Category: Intelligent Contracts
 - Network target: studionet
 - Frontend: none
+- Repository: https://github.com/duclucky/filing-trigger-covenant
 
 ## Current Evidence
 

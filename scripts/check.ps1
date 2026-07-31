@@ -2,9 +2,13 @@ param([string]$Only = "")
 
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
+$Python = ".\.venv\Scripts\python.exe"
+if (-not (Test-Path $Python)) {
+  $Python = "python"
+}
 
 if ($Only -eq "" -or $Only -eq "lint") {
-  .\.venv\Scripts\python.exe scripts/ascii_header_check.py
+  & $Python scripts/ascii_header_check.py
   if (Get-Command genvm-lint -ErrorAction SilentlyContinue) {
     genvm-lint check contracts/filing_trigger_covenant.py
   } else {
@@ -13,7 +17,7 @@ if ($Only -eq "" -or $Only -eq "lint") {
 }
 
 if ($Only -eq "" -or $Only -eq "test") {
-  .\.venv\Scripts\python.exe -m pytest tests/direct -v
+  & $Python -m pytest tests/direct -v
 }
 
 if ($Only -eq "" -or $Only -eq "deployment") {
