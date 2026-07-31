@@ -54,6 +54,7 @@ export function projectSafeEvidence(input) {
   for (const key of [
     'network',
     'sourceCommit',
+    'localSourceCommit',
     'contractAddress',
     'transactionHash',
     'result',
@@ -542,7 +543,8 @@ async function inspect() {
   const currentEvidence = readEvidence();
   const evidence = projectSafeEvidence({
     network: 'studionet',
-    sourceCommit: currentCommit(),
+    sourceCommit: currentEvidence?.sourceCommit ?? currentCommit(),
+    localSourceCommit: currentCommit(),
     result: currentEvidence?.result ?? 'PENDING_DEPLOYMENT',
     contractAddress: currentEvidence?.contractAddress,
     transactionHash: currentEvidence?.transactionHash,
