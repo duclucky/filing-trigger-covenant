@@ -56,6 +56,14 @@ test('projects safe evidence and drops private node config', () => {
     transactionHash: '0xabc',
     result: 'SUCCESS',
     actorRoles: { sponsor: '0xaaa', beneficiary: '0xbbb' },
+    transactions: {
+      adjudicateClaim: {
+        transactionHash: '0xdef',
+        status: 'FINALIZED',
+        execution: 'FINISHED_WITH_RETURN',
+        node_config: { private_key: 'must-not-appear' },
+      },
+    },
     node_config: { private_key: 'must-not-appear' },
     stderr: 'must-not-appear',
   });
@@ -66,6 +74,13 @@ test('projects safe evidence and drops private node config', () => {
     transactionHash: '0xabc',
     result: 'SUCCESS',
     actorRoles: { sponsor: '0xaaa', beneficiary: '0xbbb' },
+    transactions: {
+      adjudicateClaim: {
+        transactionHash: '0xdef',
+        status: 'FINALIZED',
+        execution: 'FINISHED_WITH_RETURN',
+      },
+    },
   });
   assert.equal(JSON.stringify(projected).includes('must-not-appear'), false);
 });

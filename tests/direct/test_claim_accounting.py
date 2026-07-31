@@ -98,6 +98,39 @@ def test_close_claim_refunds_bond_and_restores_active(direct_vm, direct_deploy, 
     assert int(accounting["withdrawable_credits"]) == CLAIM_BOND
 
 
+def test_bilateral_close_refunds_sponsor_escrow(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):
+    contract = direct_deploy(CONTRACT_PATH)
+    activate_covenant(contract, direct_vm, direct_alice, direct_bob)
+
+    direct_vm.sender = direct_charlie
+    with direct_vm.expect_revert("Only covenant parties can propose close"):
+        contract.propose_close("cyber-001")
+
+    direct_vm.sender = direct_alice
+    contract.propose_close("cyber-001")
+    with direct_vm.expect_revert("Opposite party must accept close"):
+        contract.accept_close("cyber-001")
+
+    direct_vm.sender = direct_bob
+    contract.accept_close("cyber-001")
+
+    assert contract.get_status("cyber-001") == "CLOSED"
+    assert int(contract.get_credit(to_hex(direct_alice))) == PAYOUT
+    accounting = contract.get_accounting()
+    assert int(accounting["locked_escrow"]) == 0
+    assert int(accounting["locked_claim_bonds"]) == 0
+    assert int(accounting["withdrawable_credits"]) == PAYOUT
+
+
+def test_bilateral_close_is_blocked_during_open_claim(direct_vm, direct_deploy, direct_alice, direct_bob):
+    contract = direct_deploy(CONTRACT_PATH)
+    open_valid_claim(contract, direct_vm, direct_alice, direct_bob)
+
+    direct_vm.sender = direct_alice
+    with direct_vm.expect_revert("Open claim blocks close"):
+        contract.propose_close("cyber-001")
+
+
 def test_withdrawal_debits_before_external_send(direct_vm, direct_deploy, direct_alice, direct_bob):
     contract = direct_deploy(CONTRACT_PATH)
     open_valid_claim(contract, direct_vm, direct_alice, direct_bob)

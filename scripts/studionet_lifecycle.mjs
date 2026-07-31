@@ -33,6 +33,22 @@ export function parseExecutionResult(receipt) {
   };
 }
 
+function sanitizeTransactions(transactions) {
+  if (!transactions || typeof transactions !== 'object' || Array.isArray(transactions)) {
+    return undefined;
+  }
+  const safe = {};
+  for (const [name, transaction] of Object.entries(transactions)) {
+    if (!transaction || typeof transaction !== 'object' || Array.isArray(transaction)) continue;
+    const record = {};
+    for (const key of ['transactionHash', 'status', 'execution', 'submittedAt', 'finalizedAt']) {
+      if (transaction[key] !== undefined) record[key] = transaction[key];
+    }
+    safe[name] = record;
+  }
+  return safe;
+}
+
 export function projectSafeEvidence(input) {
   const output = {};
   for (const key of [
@@ -45,10 +61,14 @@ export function projectSafeEvidence(input) {
     'actorRoles',
     'covenantId',
     'claimAccession',
+    'transactions',
     'canonicalReads',
     'limits',
   ]) {
-    if (input[key] !== undefined) {
+    if (key === 'transactions') {
+      const transactions = sanitizeTransactions(input[key]);
+      if (transactions !== undefined) output.transactions = transactions;
+    } else if (input[key] !== undefined) {
       output[key] = input[key];
     }
   }
@@ -140,8 +160,8 @@ function readEvidence() {
   return JSON.parse(readFileSync(EVIDENCE_PATH, 'utf8'));
 }
 
-function writeEvidence(patch) {
-  const previous = readEvidence() ?? {};
+function writeEvidence(patch, { replace = false } = {}) {
+  const previous = replace ? {} : (readEvidence() ?? {});
   const evidence = projectSafeEvidence({
     ...previous,
     ...patch,
@@ -156,6 +176,25 @@ function writeEvidence(patch) {
   mkdirSync(dirname(EVIDENCE_PATH), { recursive: true });
   writeFileSync(EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
   return evidence;
+}
+
+function archiveEvidence(existing, reason) {
+  if (!existing?.contractAddress) return;
+  const safeAddress = String(existing.contractAddress).toLowerCase().replace(/^0x/, '');
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const archivePath = resolve(
+    'docs',
+    'evidence',
+    'studionet',
+    'archive',
+    `deployment-${safeAddress}-${stamp}.json`,
+  );
+  mkdirSync(dirname(archivePath), { recursive: true });
+  writeFileSync(
+    archivePath,
+    `${JSON.stringify({ ...existing, archivedReason: reason }, null, 2)}\n`,
+    'utf8',
+  );
 }
 
 function signingClient(account) {
@@ -286,6 +325,11 @@ async function deploy() {
     console.log(JSON.stringify(projectSafeEvidence({ ...evidence, result: 'EXISTING_DEPLOYMENT' }), null, 2));
     return evidence.contractAddress;
   }
+  let replaceEvidence = false;
+  if (evidence?.contractAddress && evidence?.sourceCommit !== currentCommit()) {
+    archiveEvidence(evidence, 'Source commit changed before redeploy');
+    replaceEvidence = true;
+  }
 
   const { sponsor, beneficiary } = loadAccounts();
   const client = signingClient(sponsor);
@@ -299,7 +343,7 @@ async function deploy() {
       sponsor: sponsor.address,
       beneficiary: beneficiary.address,
     },
-  });
+  }, { replace: replaceEvidence });
   const receipt = await waitForReceipt(client, hash);
   assertExecution(receipt, 'deploy FilingTriggerCovenant');
   const address = deploymentAddress(receipt);

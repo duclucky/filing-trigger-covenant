@@ -100,7 +100,7 @@ ACTIVE --open_claim/beneficiary/payable--> CLAIM_OPEN
 CLAIM_OPEN --adjudicate_claim/TRIGGERED--> TRIGGERED
 CLAIM_OPEN --adjudicate_claim/NOT_TRIGGERED--> ACTIVE
 CLAIM_OPEN --adjudicate_claim/UNVERIFIABLE--> ACTIVE
-ACTIVE --close_expired/sponsor-or-beneficiary--> CLOSED
+ACTIVE --propose_close/party + accept_close/opposite-party--> CLOSED
 TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 ```
 
@@ -113,6 +113,7 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 - Claim against URL outside SEC archive allowlist.
 - Adjudicate non-open claim.
 - Withdraw more than credited amount.
+- Close while a claim is open.
 - Settle the same claim twice.
 
 ### Authorization
@@ -121,6 +122,7 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 - Beneficiary address is locked at open and must accept.
 - Only beneficiary opens claims in v1.
 - Any caller may trigger `adjudicate_claim` for an open claim because validators decide the outcome.
+- Sponsor or beneficiary may propose close; only the opposite covenant party can accept close.
 - Only credited address can withdraw its credit.
 
 ### Idempotency and double-action prevention
@@ -198,6 +200,7 @@ Rationale is stored as a bounded summary for explainability only. It is not cons
 - Ledger invariant: covenant escrow remaining plus credits plus settled transfers equals deposited value minus withdrawn value.
 - Child-message/transfer evidence: withdrawal receipt and balance delta required on Studionet for completion.
 - Withdrawal/settlement: `withdraw_credit(amount)` debits before transfer.
+- Bilateral close: `propose_close` plus `accept_close` returns remaining escrow to the sponsor ledger when both parties agree and no claim is open.
 - Cure/appeal/restore: no appeal in v1; retry allowed only after `UNVERIFIABLE` or `NOT_TRIGGERED` with a new accession.
 
 ## Reusable interface
@@ -209,7 +212,8 @@ Rationale is stored as a bounded summary for explainability only. It is not cons
 - `open_claim(covenant_id, accession, filing_url)` payable.
 - `adjudicate_claim(covenant_id)`.
 - `close_claim(covenant_id)` for stale `UNDETERMINED` recovery.
-- `close_expired(covenant_id)`.
+- `propose_close(covenant_id)`.
+- `accept_close(covenant_id)`.
 - `withdraw_credit(amount)`.
 
 ### View methods
@@ -321,4 +325,3 @@ Not selected. No frontend is allowed for this submission.
 - Validator can be reduced to JSON shape or one-party LLM judgment.
 - Payout consequence cannot be proven with canonical state and balance evidence.
 - The design drifts into a generic oracle or generic escrow.
-

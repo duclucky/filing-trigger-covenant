@@ -126,6 +126,35 @@ def test_malformed_llm_output_is_unverifiable(
     assert contract.get_status("cyber-001") == "ACTIVE"
 
 
+def test_contract_derives_coverage_when_model_omits_auxiliary_fields(
+    direct_vm, direct_deploy, direct_alice, direct_bob
+):
+    contract = setup_claim(direct_deploy, direct_vm, direct_alice, direct_bob)
+    mock_sec(
+        direct_vm,
+        {
+            "verdict": "TRIGGERED",
+            "event_class": "MATERIAL_CYBER_INCIDENT",
+            "rationale": (
+                "The filing states management concluded a ransomware incident "
+                "may constitute a material cybersecurity event."
+            ),
+        },
+    )
+
+    result = contract.adjudicate_claim("cyber-001")
+
+    assert result["verdict"] == "TRIGGERED"
+    assert result["form_covered"] is True
+    assert result["item_covered"] is True
+    assert result["decisive_fact_ids"] == [
+        "ITEM_1_05",
+        "MATERIAL_EVENT",
+        "UNAUTHORIZED_ACCESS",
+    ]
+    assert int(contract.get_credit(to_hex(direct_bob))) == PAYOUT + CLAIM_BOND
+
+
 def test_prompt_injection_cannot_expand_verdict_or_facts(
     direct_vm, direct_deploy, direct_alice, direct_bob
 ):

@@ -54,6 +54,7 @@ class Covenant:
     status: str
     active_claim_id: str
     accepted: bool
+    close_proposed_by: Address
     triggered_event_key: str
 
 
@@ -190,7 +191,53 @@ def _consequence_for_verdict(verdict: str) -> str:
     return "REFUND_CLAIM_BOND"
 
 
-def _normalize_sec_result(raw, source_stage: str) -> dict:
+def _contains(text: str, needle: str) -> bool:
+    return needle.lower() in text.lower()
+
+
+def _derive_item_covered(source_text: str, allowed_item: str) -> bool:
+    return _contains(source_text, allowed_item)
+
+
+def _derive_form_covered(source_text: str, allowed_form: str, item_covered: bool) -> bool:
+    if item_covered and allowed_form == "8-K":
+        return True
+    return _contains(source_text, "form " + allowed_form) or _contains(source_text, allowed_form)
+
+
+def _derive_fact_ids(source_text: str, trigger_kind: str, allowed_item: str) -> list[str]:
+    result: list[str] = []
+    if _derive_item_covered(source_text, allowed_item):
+        if allowed_item == "Item 1.05":
+            result.append("ITEM_1_05")
+        elif allowed_item == "Item 2.01":
+            result.append("ITEM_2_01")
+        elif allowed_item == "Going Concern":
+            result.append("GOING_CONCERN")
+    if trigger_kind == "MATERIAL_CYBER_INCIDENT":
+        if _contains(source_text, "material cybersecurity"):
+            result.append("MATERIAL_EVENT")
+        if _contains(source_text, "unauthorized") or _contains(source_text, "ransomware"):
+            result.append("UNAUTHORIZED_ACCESS")
+    elif trigger_kind == "MERGER_COMPLETED":
+        if _contains(source_text, "completed") or _contains(source_text, "closed"):
+            result.append("CLOSING_DISCLOSED")
+    elif trigger_kind == "GOING_CONCERN_WARNING":
+        if _contains(source_text, "going concern") or _contains(source_text, "substantial doubt"):
+            result.append("GOING_CONCERN")
+        if _contains(source_text, "event of default"):
+            result.append("DEFAULT_DISCLOSED")
+    return _canonical_fact_ids(result)
+
+
+def _normalize_sec_result(
+    raw,
+    source_stage: str,
+    source_text: str,
+    trigger_kind: str,
+    allowed_form: str,
+    allowed_item: str,
+) -> dict:
     if source_stage != "SUFFICIENT":
         return {
             "verdict": "UNVERIFIABLE",
@@ -209,19 +256,32 @@ def _normalize_sec_result(raw, source_stage: str) -> dict:
 
     verdict = str(parsed.get("verdict", "UNVERIFIABLE")).upper()
     event_class = str(parsed.get("event_class", "UNKNOWN")).upper()
-    form_covered = parsed.get("form_covered", False) is True
-    item_covered = parsed.get("item_covered", False) is True
-    decisive_fact_ids = _canonical_fact_ids(parsed.get("decisive_fact_ids", []))
+    item_covered = (
+        parsed.get("item_covered", None) is True
+        if "item_covered" in parsed
+        else _derive_item_covered(source_text, allowed_item)
+    )
+    form_covered = (
+        parsed.get("form_covered", None) is True
+        if "form_covered" in parsed
+        else _derive_form_covered(source_text, allowed_form, item_covered)
+    )
+    raw_facts = parsed.get("decisive_fact_ids", [])
+    decisive_fact_ids = _canonical_fact_ids(raw_facts)
+    if not decisive_fact_ids:
+        decisive_fact_ids = _derive_fact_ids(source_text, trigger_kind, allowed_item)
     rationale = str(parsed.get("rationale", ""))[:MAX_RATIONALE_CHARS]
 
     schema_valid = (
         verdict in VERDICTS
         and isinstance(parsed.get("rationale", ""), str)
-        and isinstance(parsed.get("decisive_fact_ids", []), list)
-        and len(parsed.get("decisive_fact_ids", [])) <= 12
+        and isinstance(raw_facts, list)
+        and len(raw_facts) <= 12
     )
     if event_class not in EVENT_CLASSES:
         event_class = "UNKNOWN"
+    if verdict == "TRIGGERED" and event_class == "UNKNOWN":
+        event_class = trigger_kind
     if not schema_valid:
         verdict = "UNVERIFIABLE"
         event_class = "UNKNOWN"
@@ -333,6 +393,7 @@ class Contract(gl.Contract):
             status="DRAFT",
             active_claim_id="",
             accepted=False,
+            close_proposed_by=Address(ZERO_ADDRESS),
             triggered_event_key="",
         )
 
@@ -407,6 +468,48 @@ class Contract(gl.Contract):
         covenant.active_claim_id = ""
 
     @gl.public.write
+    def propose_close(self, covenant_id: str) -> None:
+        covenant = self.get_covenant(covenant_id)
+        sender = _sender()
+        is_party = _addr_str(sender) == _addr_str(covenant.sponsor) or _addr_str(
+            sender
+        ) == _addr_str(covenant.beneficiary)
+        if not is_party:
+            raise gl.vm.UserError("Only covenant parties can propose close")
+        if covenant.status == "CLAIM_OPEN":
+            raise gl.vm.UserError("Open claim blocks close")
+        if covenant.status != "DRAFT" and covenant.status != "ACTIVE":
+            raise gl.vm.UserError("Covenant cannot be closed")
+        covenant.close_proposed_by = sender
+
+    @gl.public.write
+    def accept_close(self, covenant_id: str) -> None:
+        covenant = self.get_covenant(covenant_id)
+        sender = _sender()
+        proposer = covenant.close_proposed_by
+        valid_opposite = (
+            _addr_str(proposer) == _addr_str(covenant.sponsor)
+            and _addr_str(sender) == _addr_str(covenant.beneficiary)
+        ) or (
+            _addr_str(proposer) == _addr_str(covenant.beneficiary)
+            and _addr_str(sender) == _addr_str(covenant.sponsor)
+        )
+        if not valid_opposite:
+            raise gl.vm.UserError("Opposite party must accept close")
+        if covenant.status == "CLAIM_OPEN":
+            raise gl.vm.UserError("Open claim blocks close")
+        if covenant.status != "DRAFT" and covenant.status != "ACTIVE":
+            raise gl.vm.UserError("Covenant cannot be closed")
+
+        remaining = bigint(int(covenant.escrow_remaining))
+        if int(remaining) > 0:
+            self._credit(covenant.sponsor, remaining)
+        covenant.escrow_remaining = bigint(0)
+        covenant.status = "CLOSED"
+        covenant.active_claim_id = ""
+        covenant.close_proposed_by = Address(ZERO_ADDRESS)
+
+    @gl.public.write
     def adjudicate_claim(self, covenant_id: str) -> dict:
         covenant = self.get_covenant(covenant_id)
         if covenant.status != "CLAIM_OPEN":
@@ -430,12 +533,18 @@ class Contract(gl.Contract):
                     headers={"User-Agent": SEC_USER_AGENT},
                 )
                 if response.status != 200 or response.body is None:
-                    return _normalize_sec_result({}, "FAILED")
+                    return _normalize_sec_result(
+                        {}, "FAILED", "", trigger_kind, allowed_form, allowed_item
+                    )
                 body = response.body.decode("utf-8")
                 if len(body) > MAX_SOURCE_CHARS:
-                    return _normalize_sec_result({}, "FAILED")
+                    return _normalize_sec_result(
+                        {}, "FAILED", "", trigger_kind, allowed_form, allowed_item
+                    )
             except Exception:
-                return _normalize_sec_result({}, "FAILED")
+                return _normalize_sec_result(
+                    {}, "FAILED", "", trigger_kind, allowed_form, allowed_item
+                )
 
             prompt = (
                 "FilingTriggerCovenant SEC filing adjudicator.\n"
@@ -461,7 +570,9 @@ class Contract(gl.Contract):
                 + body
             )
             raw = gl.nondet.exec_prompt(prompt, response_format="json")
-            return _normalize_sec_result(raw, "SUFFICIENT")
+            return _normalize_sec_result(
+                raw, "SUFFICIENT", body, trigger_kind, allowed_form, allowed_item
+            )
 
         def validator_fn(leader_result) -> bool:
             if not isinstance(leader_result, gl.vm.Return):
