@@ -2,6 +2,7 @@
   "name": "filing-trigger-covenant",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "lint:contracts": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1 -Only lint",
