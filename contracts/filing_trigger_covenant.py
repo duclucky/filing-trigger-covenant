@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 MAX_ID_LENGTH = 64
+SEC_ARCHIVE_PREFIX = "https://www.sec.gov/Archives/edgar/data/"
 COVENANT_STATUSES = ("DRAFT", "ACTIVE", "CLAIM_OPEN", "TRIGGERED", "CLOSED")
 TRIGGER_KINDS = (
     "MATERIAL_CYBER_INCIDENT",
@@ -136,6 +137,8 @@ class Contract(gl.Contract):
     claims: TreeMap[str, Claim]
     credits: TreeMap[str, bigint]
     event_keys: TreeMap[str, bool]
+    claim_counts: TreeMap[str, bigint]
+    latest_claim_ids: TreeMap[str, str]
 
     @gl.public.write.payable
     def open_covenant(
@@ -211,6 +214,98 @@ class Contract(gl.Contract):
         covenant.status = "ACTIVE"
         covenant.accepted = True
 
+    @gl.public.write.payable
+    def open_claim(self, covenant_id: str, accession: str, filing_url: str) -> None:
+        covenant = self.get_covenant(covenant_id)
+        if covenant.status == "CLAIM_OPEN":
+            raise gl.vm.UserError("Covenant already has an active claim")
+        if covenant.status != "ACTIVE":
+            raise gl.vm.UserError("Covenant is not active")
+        if _addr_str(_sender()) != _addr_str(covenant.beneficiary):
+            raise gl.vm.UserError("Only beneficiary can open claim")
+        received = bigint(int(gl.message.value))
+        if int(received) != int(covenant.claim_bond_amount):
+            raise gl.vm.UserError("Claim bond value must equal configured amount")
+        self._validate_sec_url(covenant, accession, filing_url)
+
+        current = bigint(0)
+        if covenant_id in self.claim_counts:
+            current = self.claim_counts[covenant_id]
+        next_count = bigint(int(current) + 1)
+        self.claim_counts[covenant_id] = next_count
+        claim_id = covenant_id + ":" + accession + ":" + str(int(next_count))
+        self.claims[claim_id] = Claim(
+            covenant_id=covenant_id,
+            claimant=_sender(),
+            accession=accession,
+            filing_url=filing_url,
+            status="OPEN",
+            verdict="PENDING",
+            source_stage="PENDING",
+            consequence_class="PENDING",
+            settled=False,
+        )
+        covenant.status = "CLAIM_OPEN"
+        covenant.active_claim_id = claim_id
+        self.latest_claim_ids[covenant_id] = claim_id
+
+    @gl.public.write
+    def close_claim(self, covenant_id: str) -> None:
+        covenant = self.get_covenant(covenant_id)
+        if covenant.status != "CLAIM_OPEN":
+            raise gl.vm.UserError("No active claim")
+        claim = self.claims[covenant.active_claim_id]
+        if _addr_str(_sender()) != _addr_str(claim.claimant):
+            raise gl.vm.UserError("Only claimant can close claim")
+        if claim.settled:
+            raise gl.vm.UserError("Claim already settled")
+        self._credit(claim.claimant, covenant.claim_bond_amount)
+        claim.status = "CLOSED"
+        claim.verdict = "UNVERIFIABLE"
+        claim.source_stage = "CLOSED"
+        claim.consequence_class = "REFUND_CLAIM_BOND"
+        claim.settled = True
+        covenant.status = "ACTIVE"
+        covenant.active_claim_id = ""
+
+    @gl.public.write
+    def withdraw_credit(self, amount: int) -> None:
+        requested = bigint(int(amount))
+        if int(requested) <= 0:
+            raise gl.vm.UserError("Withdrawal amount must be positive")
+        key = _addr_str(_sender())
+        current = bigint(0)
+        if key in self.credits:
+            current = self.credits[key]
+        if int(current) < int(requested):
+            raise gl.vm.UserError("Insufficient credit")
+        self.credits[key] = bigint(int(current) - int(requested))
+        gl.get_contract_at(_sender()).emit_transfer(value=u256(requested))
+
+    def _validate_sec_url(self, covenant: Covenant, accession: str, filing_url: str) -> None:
+        if len(accession) < 10 or len(accession) > 24 or not _is_digits(accession):
+            raise gl.vm.UserError("Accession must be 10-24 digits")
+        if not filing_url.startswith(SEC_ARCHIVE_PREFIX):
+            raise gl.vm.UserError("SEC URL must be official EDGAR archive")
+        rest = filing_url[len(SEC_ARCHIVE_PREFIX):]
+        cik_prefix = covenant.cik + "/"
+        if not rest.startswith(cik_prefix):
+            raise gl.vm.UserError("SEC URL CIK must match covenant")
+        after_cik = rest[len(cik_prefix):]
+        if not after_cik.startswith(accession + "/"):
+            raise gl.vm.UserError("SEC URL accession must match claim")
+        if ".." in rest or "?" in rest or "#" in rest:
+            raise gl.vm.UserError("SEC URL must be official EDGAR archive")
+        if not (filing_url.endswith(".htm") or filing_url.endswith(".html") or filing_url.endswith(".txt")):
+            raise gl.vm.UserError("SEC URL must be official EDGAR archive")
+
+    def _credit(self, account: Address, amount: bigint) -> None:
+        key = _addr_str(account)
+        current = bigint(0)
+        if key in self.credits:
+            current = self.credits[key]
+        self.credits[key] = bigint(int(current) + int(amount))
+
     @gl.public.view
     def get_covenant(self, covenant_id: str) -> Covenant:
         if covenant_id not in self.covenants:
@@ -222,8 +317,41 @@ class Contract(gl.Contract):
         return self.get_covenant(covenant_id).status
 
     @gl.public.view
+    def get_claim(self, covenant_id: str) -> Claim:
+        if covenant_id not in self.latest_claim_ids:
+            raise gl.vm.UserError("Claim not found")
+        return self.claims[self.latest_claim_ids[covenant_id]]
+
+    @gl.public.view
     def get_credit(self, account: str) -> bigint:
         key = Address(account).as_hex.lower()
         if key not in self.credits:
             return bigint(0)
         return self.credits[key]
+
+    @gl.public.view
+    def can_claim(self, covenant_id: str, accession: str) -> bool:
+        covenant = self.get_covenant(covenant_id)
+        return covenant.status == "ACTIVE" and not self.event_keys.get(
+            covenant.cik + ":" + accession + ":" + covenant.trigger_kind, False
+        )
+
+    @gl.public.view
+    def get_accounting(self) -> dict:
+        locked_escrow = bigint(0)
+        locked_claim_bonds = bigint(0)
+        withdrawable = bigint(0)
+        for covenant_id in self.covenants:
+            covenant = self.covenants[covenant_id]
+            locked_escrow = bigint(int(locked_escrow) + int(covenant.escrow_remaining))
+            if covenant.status == "CLAIM_OPEN":
+                locked_claim_bonds = bigint(
+                    int(locked_claim_bonds) + int(covenant.claim_bond_amount)
+                )
+        for key in self.credits:
+            withdrawable = bigint(int(withdrawable) + int(self.credits[key]))
+        return {
+            "locked_escrow": locked_escrow,
+            "locked_claim_bonds": locked_claim_bonds,
+            "withdrawable_credits": withdrawable,
+        }
