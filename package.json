@@ -1,0 +1,12 @@
+{
+  "name": "filing-trigger-covenant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:contracts": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1 -Only lint",
+    "test:direct": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1 -Only test",
+    "check": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1"
+  }
+}
+

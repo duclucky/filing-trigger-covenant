@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 coverage/
+artifacts/
 .pytest_cache/
 __pycache__/
 *.pyc
@@ -16,4 +17,3 @@ CLAUDE.md
 wallet*
 *private*
 *secret*
-
