@@ -73,12 +73,13 @@ test('projects safe evidence and drops private node config', () => {
 test('env discovery reports presence without values', () => {
   const presence = discoverEnvPresence({
     projectEnv: 'GENLAYER_PRIVATE_KEY=secret\nSEC_USER_AGENT=agent\n',
-    parentEnv: 'GENLAYER_PRIVATE_KEY=parent-secret\n',
+    parentEnv: 'STUDIONET_PRIVATE_KEY=parent-secret\nSTUDIONET_INTEGRATOR_PRIVATE_KEY=other\n',
   });
 
   assert.deepEqual(presence, {
     hasProjectPrivateKey: true,
     hasParentPrivateKey: true,
+    hasParentIntegratorPrivateKey: true,
     hasSecUserAgent: true,
   });
 });
