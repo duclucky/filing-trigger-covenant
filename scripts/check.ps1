@@ -16,3 +16,6 @@ if ($Only -eq "" -or $Only -eq "test") {
   .\.venv\Scripts\python.exe -m pytest tests/direct -v
 }
 
+if ($Only -eq "" -or $Only -eq "deployment") {
+  node --test tests/deployment_parser.test.mjs
+}

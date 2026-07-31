@@ -6,7 +6,7 @@
   "scripts": {
     "lint:contracts": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1 -Only lint",
     "test:direct": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1 -Only test",
+    "test:deployment": "node --test tests/deployment_parser.test.mjs",
     "check": "powershell -ExecutionPolicy Bypass -File scripts/check.ps1"
   }
 }
-
