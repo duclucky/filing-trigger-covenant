@@ -1,10 +1,10 @@
 {
   "network": "studionet",
-  "sourceCommit": "1a1d2de202b13a9f79f3ed2024f8ae854a3922e2",
-  "contractAddress": "0x658FF09d5edF1d5CA7dc232387F2c9a827C15d3a",
-  "transactionHash": "0x6a0e25bd2be0df3b142c51d6e68bcde8ad15b2265d1cda57e573f21fde709f6b",
+  "sourceCommit": "7490f10401087b07f44f459f5d6f2f0306a93855",
+  "contractAddress": "0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4",
+  "transactionHash": "0x449e1c7fc79eb7c31391cd1d0f10ccbae73524a4adbb72fa1c98f907f4ae0aa0",
   "result": "SUCCESS",
-  "timestamp": "2026-08-04T14:21:29.950Z",
+  "timestamp": "2026-08-04T13:55:17.520Z",
   "actorRoles": {
     "sponsor": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
     "beneficiary": "0x45aD397c438397A702B53a7499a78D08961D39Db"
@@ -13,58 +13,58 @@
   "claimAccession": "000143774926009193",
   "transactions": {
     "openCovenant": {
-      "transactionHash": "0x6cb1bff4bee6893bf3bb4a9af29406b9d610fa5cc1ce097cd472bd329d55e5e3",
+      "transactionHash": "0x182b7a8176e414d651c675944eabc8f329d1f8397ad7f09f005d0c086cbc225f",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:22:29.219Z"
+      "finalizedAt": "2026-08-04T13:56:19.922Z"
     },
     "acceptCovenant": {
-      "transactionHash": "0xa96c73e4ebe09d86555b74d2198f6106258917cb84ba2c3f4995d1ce6bd29fe6",
+      "transactionHash": "0xc337768a7988952f8ff3367e0d8022e6ef41cd0fd32ee8ca5ae6aee71cf7df93",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:23:09.063Z"
+      "finalizedAt": "2026-08-04T13:57:07.421Z"
     },
     "openClaim": {
-      "transactionHash": "0x5290d053a0d63ef45ee09a52e2fcd4d7ec053a1a12c4e9d72d6188cbab1f12ec",
+      "transactionHash": "0x04a560df165957d18df39cceba68c6058b21aac4dd18d63db32becde8ae5e658",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:23:50.472Z"
+      "finalizedAt": "2026-08-04T13:57:47.039Z"
     },
     "adjudicateClaim": {
-      "transactionHash": "0x5c5fd5013d60b6774129d31d2525f4696829bd5d242b883faaaa75a75ec16953",
+      "transactionHash": "0x611b88522abd887e28e082ea4c3bbf8ddf481b406c662f0bfa70875b043b24dd",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:25:11.266Z"
+      "finalizedAt": "2026-08-04T13:59:01.708Z"
     },
     "withdrawCredit": {
-      "transactionHash": "0xc273b3c4caf803908e4a8ea00369000576de32d1fb183b23a784b67358c89155",
+      "transactionHash": "0x9a896101ac553559b13a99056a4e6799e2d82d05d468d02a023756fa92f285c3",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:25:54.062Z"
+      "finalizedAt": "2026-08-04T13:59:47.448Z"
     },
     "expiredOpenCovenant": {
-      "transactionHash": "0xf9a7d394ffca1868115057e2a84d8a3cfb604ba46fc907b5582232b8e92eb4f6",
+      "transactionHash": "0x684db5c4ce9af19e73edb9d5c711680387781a8bff35f56f3d65da8b0eacdbbd",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:26:54.444Z"
+      "finalizedAt": "2026-08-04T14:00:44.710Z"
     },
     "expiredAcceptCovenant": {
-      "transactionHash": "0xb3ee8d925abef29769a235febedc0921e41340389d2200cf91ec0df4ea343eb6",
+      "transactionHash": "0x896442c06155582256ffa6d8cfd3d9b79aa5e0c103a1a73b56a6549273946aa1",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:27:42.648Z"
+      "finalizedAt": "2026-08-04T14:01:36.347Z"
     },
     "expiredClose": {
-      "transactionHash": "0xe2f361205e13d1ccd1a7ac0e4d92eb672bd0f199f5aa4d85240865e00b101032",
+      "transactionHash": "0x2519a0e21c0a01b9ee069a638926756a826a2ead556d89c64e676584a665a3c9",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:28:30.216Z"
+      "finalizedAt": "2026-08-04T14:02:22.165Z"
     },
     "withdrawExpiredSponsorCredit": {
-      "transactionHash": "0x037080fc72c2af9f1348d74264906cb09de6245d8d1755fe5122c6ce9e1e97db",
+      "transactionHash": "0x10480485f4044a5e73e6ee3e164376abc19c05c4085cbe37f022046663c08106",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-08-04T14:29:16.949Z"
+      "finalizedAt": "2026-08-04T14:03:11.539Z"
     }
   },
   "canonicalReads": {
@@ -96,7 +96,7 @@
       "event_class": "MATERIAL_CYBER_INCIDENT",
       "filing_date": "2026-03-20",
       "filing_url": "https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm",
-      "rationale": "The filing is a Form 8-K (matching allowed form) filed on 2026-03-20 by CIK 0000732026 (matching locked CIK), within the activation-to-expiry window of 2026-01-01 to 2026-12-31. The document contains Item 1.05 Material Cybersecurity Incidents (matching allowed item). The filing discloses a ransomware incident originating on 2026-03-11 at a Singapore subsidiary that escalated on 2026-03-18 to include unauthorized disclosure of Company data, at which point management concluded the incident may constitute a material cybersecurity event. This constitutes an unauthorized access/disclosure event rep",
+      "rationale": "The filing is a Form 8-K dated 2026-03-20, within the allowed period, and expressly reports under Item 1.05 Material Cybersecurity Incidents. It states a ransomware incident escalated on March 18, 2026 to unauthorized disclosure of company data, and management concluded the incident may constitute a material cybersecurity event.",
       "settled": true,
       "source_stage": "SUFFICIENT",
       "status": "RESOLVED",
@@ -143,5 +143,6 @@
     "noFrontend": true,
     "contractOnlyTrack": true,
     "evidenceIsSanitized": true
-  }
+  },
+  "archivedReason": "Source commit changed before redeploy"
 }

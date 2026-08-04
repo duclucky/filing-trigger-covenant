@@ -12,7 +12,7 @@ Status: Studionet verified for the Intelligent Contracts track. No frontend and 
 - Category: `Intelligent Contracts`
 - Evidence URL: https://github.com/duclucky/filing-trigger-covenant
 - Repository: https://github.com/duclucky/filing-trigger-covenant
-- Primary contract explorer: https://explorer-studio.genlayer.com/address/0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4
+- Primary contract explorer: https://explorer-studio.genlayer.com/address/0x658FF09d5edF1d5CA7dc232387F2c9a827C15d3a
 - CI: https://github.com/duclucky/filing-trigger-covenant/actions
 - License: MIT
 - Frontend: none
@@ -22,15 +22,15 @@ Status: Studionet verified for the Intelligent Contracts track. No frontend and 
 Character count: 884
 
 ```text
-FilingTriggerCovenant is a reusable GenLayer Intelligent Contract for SEC filing-triggered payouts. A sponsor funds GEN escrow and locks beneficiary, CIK, EDGAR accession/form/item, activation/expiry dates, trigger enum, payout, and claim bond. The beneficiary submits an official sec.gov filing; validators fetch SEC submissions metadata to verify authoritative filingDate/form and independently fetch the filing to judge disclosure meaning. Out-of-window filings cannot trigger payout, expired inactive covenants can be closed by the sponsor to recover escrow, and rationale prose is non-critical. TRIGGERED credits payout plus bond to beneficiary; NOT_TRIGGERED credits bond to sponsor; UNVERIFIABLE refunds bond for retry. Repo includes source, 47 direct tests, 4 parser tests, CI, sanitized Studionet evidence, and deployed contract at 0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4.
+FilingTriggerCovenant is a reusable GenLayer Intelligent Contract for SEC filing-triggered payouts. A sponsor funds GEN escrow and locks beneficiary, CIK, EDGAR accession/form/item, activation/expiry dates, trigger enum, payout, and claim bond. The beneficiary submits an official sec.gov filing; validators fetch SEC submissions metadata to verify authoritative filingDate/form and independently fetch the filing to judge disclosure meaning. Out-of-window filings cannot trigger payout, expired inactive covenants can be closed by the sponsor to recover escrow, and rationale prose is non-critical. TRIGGERED credits payout plus bond to beneficiary; NOT_TRIGGERED credits bond to sponsor; UNVERIFIABLE refunds bond for retry. Repo includes source, 48 direct tests, 4 parser tests, CI, sanitized Studionet evidence, and deployed contract at 0x658FF09d5edF1d5CA7dc232387F2c9a827C15d3a.
 ```
 
 ## Deployment
 
 - Network: `studionet`
-- Contract address: `0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4`
-- Deployment transaction: `0x449e1c7fc79eb7c31391cd1d0f10ccbae73524a4adbb72fa1c98f907f4ae0aa0`
-- Deployed contract source commit: `7490f10401087b07f44f459f5d6f2f0306a93855`
+- Contract address: `0x658FF09d5edF1d5CA7dc232387F2c9a827C15d3a`
+- Deployment transaction: `0x6a0e25bd2be0df3b142c51d6e68bcde8ad15b2265d1cda57e573f21fde709f6b`
+- Deployed contract source commit: `1a1d2de202b13a9f79f3ed2024f8ae854a3922e2`
 - Evidence file: [`docs/evidence/studionet/deployment.json`](docs/evidence/studionet/deployment.json)
 
 The deployed contract source is preserved in public history at the source commit above. Later commits may update only documentation and evidence.
@@ -111,7 +111,7 @@ View methods:
 ## Verification
 
 - Local check: `npm run check`
-- Current local result: 47 direct tests and 4 deployment parser tests passed.
+- Current local result: 48 direct tests and 4 deployment parser tests passed.
 - CI: https://github.com/duclucky/filing-trigger-covenant/actions
 - Note: local `genvm-lint` was not on PATH during development; the check uses static contract assertions plus `gltest`.
 

@@ -9,8 +9,8 @@
 - Status: VALIDATED - IC TRACK / STUDIONET VERIFIED / NO FRONTEND
 - Repository: https://github.com/duclucky/filing-trigger-covenant
 - Target network: studionet
-- Active Studionet contract: `0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4`
-- Source commit: `7490f10401087b07f44f459f5d6f2f0306a93855`
+- Active Studionet contract: `0x658FF09d5edF1d5CA7dc232387F2c9a827C15d3a`
+- Source commit: `1a1d2de202b13a9f79f3ed2024f8ae854a3922e2`
 
 ## One-sentence product hook
 
@@ -46,7 +46,7 @@ A filing trigger should pay only when official SEC disclosure means the locked e
 | Reuse | PASS | Integrators can use write methods and canonical views without forking SEC adjudication. |
 | Contract count | PASS | One contract owns the consequence; no consumer/pass-through guard is justified. |
 | Differentiation | PASS | Differs from recall, interface, agent-access, and generic escrow patterns by SEC filing trigger semantics and covenant ledger consequence. |
-| Claim-to-code | PASS | Claims map to contract methods, canonical views, 47 direct tests, 4 parser tests, and Studionet evidence. |
+| Claim-to-code | PASS | Claims map to contract methods, canonical views, 48 direct tests, 4 parser tests, and Studionet evidence. |
 | Full lifecycle | PASS | Studionet lifecycle funded, accepted, claimed against a real SEC filing, verified authoritative filing date, finalized `TRIGGERED`, withdrew beneficiary credit, closed an expired covenant, returned sponsor escrow, and verified zero locked accounting. |
 | Scope honesty | PASS | Contract source, tests, deployment, lifecycle evidence, public GitHub, and no-frontend scope are verified; portal submission remains a separate user action. |
 
