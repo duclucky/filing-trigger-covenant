@@ -12,28 +12,28 @@ Status: Studionet verified for the Intelligent Contracts track. No frontend and 
 - Category: `Intelligent Contracts`
 - Evidence URL: https://github.com/duclucky/filing-trigger-covenant
 - Repository: https://github.com/duclucky/filing-trigger-covenant
-- Primary contract explorer: https://explorer-studio.genlayer.com/address/0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB
+- Primary contract explorer: https://explorer-studio.genlayer.com/address/0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4
 - CI: https://github.com/duclucky/filing-trigger-covenant/actions
 - License: MIT
 - Frontend: none
 
 ## Portal Description
 
-Character count: 900
+Character count: 884
 
 ```text
-FilingTriggerCovenant is a reusable GenLayer Intelligent Contract for SEC filing-triggered payouts. A sponsor funds GEN escrow and locks a beneficiary, CIK, EDGAR accession/form/item, trigger enum, payout, and claim bond. The beneficiary submits an official sec.gov EDGAR filing; validators independently fetch the filing and agree on the meaning of the disclosure, not JSON formatting. The primitive can power prediction-market resolution, DAO treasury covenants, credit agreements, earnouts, insurance-like riders, and grant milestones. A finalized TRIGGERED verdict credits payout plus claim bond to the beneficiary; NOT_TRIGGERED credits the bond to the sponsor; UNVERIFIABLE is retryable and non-penalizing. The repo includes contract source, docs, 39 direct tests, deployment parser tests, CI, sanitized Studionet evidence, and a deployed contract at 0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB.
+FilingTriggerCovenant is a reusable GenLayer Intelligent Contract for SEC filing-triggered payouts. A sponsor funds GEN escrow and locks beneficiary, CIK, EDGAR accession/form/item, activation/expiry dates, trigger enum, payout, and claim bond. The beneficiary submits an official sec.gov filing; validators fetch SEC submissions metadata to verify authoritative filingDate/form and independently fetch the filing to judge disclosure meaning. Out-of-window filings cannot trigger payout, expired inactive covenants can be closed by the sponsor to recover escrow, and rationale prose is non-critical. TRIGGERED credits payout plus bond to beneficiary; NOT_TRIGGERED credits bond to sponsor; UNVERIFIABLE refunds bond for retry. Repo includes source, 47 direct tests, 4 parser tests, CI, sanitized Studionet evidence, and deployed contract at 0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4.
 ```
 
 ## Deployment
 
 - Network: `studionet`
-- Contract address: `0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB`
-- Deployment transaction: `0x65a96e193ec8154217ca777514a398834af0d34e4cfa92c158535a2f59a833c7`
-- Deployed contract source commit: `8fa467af9b697de8bebb997565f7d50199b51f01`
+- Contract address: `0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4`
+- Deployment transaction: `0x449e1c7fc79eb7c31391cd1d0f10ccbae73524a4adbb72fa1c98f907f4ae0aa0`
+- Deployed contract source commit: `7490f10401087b07f44f459f5d6f2f0306a93855`
 - Evidence file: [`docs/evidence/studionet/deployment.json`](docs/evidence/studionet/deployment.json)
 
-The current repository head may be newer than the deployed source commit because later commits only updated docs, CI, tooling, and license metadata. The deployed contract source itself is preserved in the public history.
+The deployed contract source is preserved in public history at the source commit above. Later commits may update only documentation and evidence.
 
 ## Worked Example
 
@@ -44,6 +44,7 @@ Real Studionet example:
 - Trigger: `MATERIAL_CYBER_INCIDENT`
 - Allowed form/item: `8-K` / `Item 1.05`
 - SEC filing accession: `000143774926009193`
+- SEC authoritative filing date: `2026-03-20`
 - SEC filing URL: `https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm`
 - Payout: `0.01 GEN`
 - Claim bond: `0.001 GEN`
@@ -52,15 +53,25 @@ Real finalized output:
 
 - Covenant status: `TRIGGERED`
 - Claim verdict: `TRIGGERED`
+- Claim filing date: `2026-03-20`
 - Consequence: `PAY_BENEFICIARY`
 - Decisive facts: `ITEM_1_05,MATERIAL_EVENT,UNAUTHORIZED_ACCESS`
 - Beneficiary credit before withdrawal: `0.011 GEN`
 - Beneficiary credit after withdrawal: `0`
 - Locked escrow, locked claim bonds, and withdrawable credits after withdrawal: `0`
 
+Expired recovery example:
+
+- Covenant ID: `expired-001`
+- Activation/expiry: `2025-01-01` / `2025-12-31`
+- `close_expired` transaction finalized with status `CLOSED`
+- Sponsor credit before withdrawal: `0.002 GEN`
+- Sponsor credit after withdrawal: `0`
+- Locked escrow, locked claim bonds, and withdrawable credits after withdrawal: `0`
+
 ## Consensus Design
 
-The contract performs nondeterministic SEC filing evaluation inside `adjudicate_claim`. The leader fetches the locked EDGAR archive URL with a declared User-Agent, bounds the source text, asks for semantic filing judgment, and normalizes the output into fixed fields.
+The contract performs nondeterministic SEC filing evaluation inside `adjudicate_claim`. The leader first fetches SEC submissions metadata with a declared User-Agent to verify the accession, authoritative `filingDate`, and form. Only filings whose official date is inside the covenant window can proceed to semantic judgment. The leader then fetches the locked EDGAR archive URL, bounds the source text, asks for semantic filing judgment, and normalizes the output into fixed fields.
 
 Validators independently rerun the same evidence function and compare consensus-critical meaning:
 
@@ -68,6 +79,7 @@ Validators independently rerun the same evidence function and compare consensus-
 - event class;
 - form and item coverage;
 - source stage;
+- authoritative filing date;
 - consequence class;
 - bounded decisive fact IDs.
 
@@ -84,6 +96,7 @@ Write methods:
 - `close_claim(covenant_id)`
 - `propose_close(covenant_id)`
 - `accept_close(covenant_id)`
+- `close_expired(covenant_id)`
 - `withdraw_credit(amount)`
 
 View methods:
@@ -98,7 +111,7 @@ View methods:
 ## Verification
 
 - Local check: `npm run check`
-- Current local result: 39 direct tests and 4 deployment parser tests passed.
+- Current local result: 47 direct tests and 4 deployment parser tests passed.
 - CI: https://github.com/duclucky/filing-trigger-covenant/actions
 - Note: local `genvm-lint` was not on PATH during development; the check uses static contract assertions plus `gltest`.
 

@@ -1,10 +1,10 @@
 {
   "network": "studionet",
-  "sourceCommit": "8fa467af9b697de8bebb997565f7d50199b51f01",
-  "contractAddress": "0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB",
-  "transactionHash": "0x65a96e193ec8154217ca777514a398834af0d34e4cfa92c158535a2f59a833c7",
+  "sourceCommit": "7490f10401087b07f44f459f5d6f2f0306a93855",
+  "contractAddress": "0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4",
+  "transactionHash": "0x449e1c7fc79eb7c31391cd1d0f10ccbae73524a4adbb72fa1c98f907f4ae0aa0",
   "result": "SUCCESS",
-  "timestamp": "2026-07-31T18:09:53.923Z",
+  "timestamp": "2026-08-04T13:55:17.520Z",
   "actorRoles": {
     "sponsor": "0xC495ef51618D03267A1f227aFe5b27B38c748272",
     "beneficiary": "0x45aD397c438397A702B53a7499a78D08961D39Db"
@@ -13,34 +13,58 @@
   "claimAccession": "000143774926009193",
   "transactions": {
     "openCovenant": {
-      "transactionHash": "0xc38b4cc000842eb69ad563c9e4e9addb8257f8fd92e4468d370d490ef5ecc610",
+      "transactionHash": "0x182b7a8176e414d651c675944eabc8f329d1f8397ad7f09f005d0c086cbc225f",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-07-31T18:10:42.243Z"
+      "finalizedAt": "2026-08-04T13:56:19.922Z"
     },
     "acceptCovenant": {
-      "transactionHash": "0xfe18bd7b18feb4ee054c7a4d24f75a60f8b7ee8ada72cb2e6fb56cbeb866dd39",
+      "transactionHash": "0xc337768a7988952f8ff3367e0d8022e6ef41cd0fd32ee8ca5ae6aee71cf7df93",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-07-31T18:11:25.907Z"
+      "finalizedAt": "2026-08-04T13:57:07.421Z"
     },
     "openClaim": {
-      "transactionHash": "0x496473d8dfdd2e47ffce508548d24ecc782a5b2a59e5c01a69cae259e18909cb",
+      "transactionHash": "0x04a560df165957d18df39cceba68c6058b21aac4dd18d63db32becde8ae5e658",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-07-31T18:12:08.053Z"
+      "finalizedAt": "2026-08-04T13:57:47.039Z"
     },
     "adjudicateClaim": {
-      "transactionHash": "0x52ebcabfc89cef433b6d40cb52ed4b818e11cfa0d636510ac9eaf0b7e01a52c1",
+      "transactionHash": "0x611b88522abd887e28e082ea4c3bbf8ddf481b406c662f0bfa70875b043b24dd",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-07-31T18:13:49.226Z"
+      "finalizedAt": "2026-08-04T13:59:01.708Z"
     },
     "withdrawCredit": {
-      "transactionHash": "0x27b390af72021788f0d10c5dbbd6adfa70248397e3e18d2798860a08ede93cf6",
+      "transactionHash": "0x9a896101ac553559b13a99056a4e6799e2d82d05d468d02a023756fa92f285c3",
       "status": "FINALIZED",
       "execution": "FINISHED_WITH_RETURN",
-      "finalizedAt": "2026-07-31T18:14:32.641Z"
+      "finalizedAt": "2026-08-04T13:59:47.448Z"
+    },
+    "expiredOpenCovenant": {
+      "transactionHash": "0x684db5c4ce9af19e73edb9d5c711680387781a8bff35f56f3d65da8b0eacdbbd",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-08-04T14:00:44.710Z"
+    },
+    "expiredAcceptCovenant": {
+      "transactionHash": "0x896442c06155582256ffa6d8cfd3d9b79aa5e0c103a1a73b56a6549273946aa1",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-08-04T14:01:36.347Z"
+    },
+    "expiredClose": {
+      "transactionHash": "0x2519a0e21c0a01b9ee069a638926756a826a2ead556d89c64e676584a665a3c9",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-08-04T14:02:22.165Z"
+    },
+    "withdrawExpiredSponsorCredit": {
+      "transactionHash": "0x10480485f4044a5e73e6ee3e164376abc19c05c4085cbe37f022046663c08106",
+      "status": "FINALIZED",
+      "execution": "FINISHED_WITH_RETURN",
+      "finalizedAt": "2026-08-04T14:03:11.539Z"
     }
   },
   "canonicalReads": {
@@ -70,8 +94,9 @@
       "covenant_id": "cyber-001",
       "decisive_fact_ids": "ITEM_1_05,MATERIAL_EVENT,UNAUTHORIZED_ACCESS",
       "event_class": "MATERIAL_CYBER_INCIDENT",
+      "filing_date": "2026-03-20",
       "filing_url": "https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm",
-      "rationale": "The filing is a Form 8-K filed under Item 1.05. The text explicitly states that a ransomware incident initially identified on March 11, 2026, escalated on March 18, 2026, resulting in unauthorized disclosure of Company data. Management concluded that the incident 'may constitute a material cybersecurity event.' The disclosure describes unauthorized access, containment measures, ongoing investigation, and potential material impact, satisfying the criteria for a MATERIAL_CYBER_INCIDENT trigger.",
+      "rationale": "The filing is a Form 8-K dated 2026-03-20, within the allowed period, and expressly reports under Item 1.05 Material Cybersecurity Incidents. It states a ransomware incident escalated on March 18, 2026 to unauthorized disclosure of company data, and management concluded the incident may constitute a material cybersecurity event.",
       "settled": true,
       "source_stage": "SUFFICIENT",
       "status": "RESOLVED",
@@ -83,6 +108,35 @@
       "locked_claim_bonds": 0,
       "locked_escrow": 0,
       "withdrawable_credits": 0
+    },
+    "expiredRecovery": {
+      "covenantId": "expired-001",
+      "status": "CLOSED",
+      "covenant": {
+        "accepted": true,
+        "activation_date": "2025-01-01",
+        "active_claim_id": "",
+        "allowed_form": "8-K",
+        "allowed_item": "Item 1.05",
+        "beneficiary": "0x45ad397c438397a702b53a7499a78d08961d39db",
+        "cik": "732026",
+        "claim_bond_amount": 500000000000000,
+        "close_proposed_by": "0x0000000000000000000000000000000000000000",
+        "escrow_remaining": 0,
+        "expiry_date": "2025-12-31",
+        "payout_amount": 2000000000000000,
+        "sponsor": "0xc495ef51618d03267a1f227afe5b27b38c748272",
+        "status": "CLOSED",
+        "trigger_kind": "MATERIAL_CYBER_INCIDENT",
+        "triggered_event_key": ""
+      },
+      "sponsorCreditBeforeWithdraw": 2000000000000000,
+      "sponsorCreditAfterWithdraw": 0,
+      "accounting": {
+        "locked_claim_bonds": 0,
+        "locked_escrow": 0,
+        "withdrawable_credits": 0
+      }
     }
   },
   "limits": {

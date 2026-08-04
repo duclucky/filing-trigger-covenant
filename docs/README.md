@@ -9,8 +9,8 @@
 - Status: VALIDATED - IC TRACK / STUDIONET VERIFIED / NO FRONTEND
 - Repository: https://github.com/duclucky/filing-trigger-covenant
 - Target network: studionet
-- Active Studionet contract: `0xdAd8E295c35cdc9bC529074D0BbB3957C42C22eB`
-- Source commit: `8fa467af9b697de8bebb997565f7d50199b51f01`
+- Active Studionet contract: `0xCb0F6b3Ce4447D3EE05300e5E6595dA269f789F4`
+- Source commit: `7490f10401087b07f44f459f5d6f2f0306a93855`
 
 ## One-sentence product hook
 
@@ -46,9 +46,9 @@ A filing trigger should pay only when official SEC disclosure means the locked e
 | Reuse | PASS | Integrators can use write methods and canonical views without forking SEC adjudication. |
 | Contract count | PASS | One contract owns the consequence; no consumer/pass-through guard is justified. |
 | Differentiation | PASS | Differs from recall, interface, agent-access, and generic escrow patterns by SEC filing trigger semantics and covenant ledger consequence. |
-| Claim-to-code | PASS | Claims map to contract methods, canonical views, 39 direct tests, 4 parser tests, and Studionet evidence. |
-| Full lifecycle | PASS | Studionet lifecycle funded, accepted, claimed against a real SEC filing, finalized `TRIGGERED`, withdrew beneficiary credit, and verified zero locked accounting. |
-| Scope honesty | PASS | Contract source, tests, deployment, lifecycle evidence, and no-frontend scope are verified; public GitHub and portal submission remain separate steps until completed. |
+| Claim-to-code | PASS | Claims map to contract methods, canonical views, 47 direct tests, 4 parser tests, and Studionet evidence. |
+| Full lifecycle | PASS | Studionet lifecycle funded, accepted, claimed against a real SEC filing, verified authoritative filing date, finalized `TRIGGERED`, withdrew beneficiary credit, closed an expired covenant, returned sponsor escrow, and verified zero locked accounting. |
+| Scope honesty | PASS | Contract source, tests, deployment, lifecycle evidence, public GitHub, and no-frontend scope are verified; portal submission remains a separate user action. |
 
 ## Actors, roles and incentives
 
@@ -89,7 +89,7 @@ A filing trigger should pay only when official SEC disclosure means the locked e
 ### Structured storage
 
 - `Covenant`: sponsor, beneficiary, CIK, trigger kind, allowed form, allowed item, payout, claim bond, status, active claim, accepted flag, escrow remaining.
-- `Claim`: covenant ID, claimant, filing URL, accession, opened timestamp, attempt index, status, verdict, source stage, consequence, settled flag.
+- `Claim`: covenant ID, claimant, filing URL, accession, status, verdict, source stage, authoritative filing date, consequence, event class, decisive fact IDs, rationale, settled flag.
 - `Credit`: address string to GEN amount.
 - `Attempt`: claim ID to source/verdict summary.
 
@@ -103,6 +103,7 @@ CLAIM_OPEN --adjudicate_claim/TRIGGERED--> TRIGGERED
 CLAIM_OPEN --adjudicate_claim/NOT_TRIGGERED--> ACTIVE
 CLAIM_OPEN --adjudicate_claim/UNVERIFIABLE--> ACTIVE
 ACTIVE --propose_close/party + accept_close/opposite-party--> CLOSED
+ACTIVE --close_expired/sponsor/after-expiry--> CLOSED
 TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 ```
 
@@ -111,11 +112,13 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 - Duplicate covenant ID.
 - Accept by non-beneficiary.
 - Claim before acceptance.
+- Claim before activation or after expiry.
 - Claim while another claim is open.
 - Claim against URL outside SEC archive allowlist.
 - Adjudicate non-open claim.
 - Withdraw more than credited amount.
 - Close while a claim is open.
+- Sponsor expiry close before the expiry date.
 - Settle the same claim twice.
 
 ### Authorization
@@ -125,6 +128,7 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 - Only beneficiary opens claims in v1.
 - Any caller may trigger `adjudicate_claim` for an open claim because validators decide the outcome.
 - Sponsor or beneficiary may propose close; only the opposite covenant party can accept close.
+- Sponsor may unilaterally close an inactive expired covenant after the expiry date.
 - Only credited address can withdraw its credit.
 
 ### Idempotency and double-action prevention
@@ -144,7 +148,7 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 - Signed timestamp bounds: not used for SEC-authored source; filing date must be inside locked covenant window.
 - Immutable policy/source version URLs and hashes: filing URL/accession are immutable evidence identity; evidence summary stores accession and stage, not raw filing.
 - Allowed schemes/domains/paths: HTTPS, `www.sec.gov`, path prefix `/Archives/edgar/data/`.
-- Time/window rules: filing date must be on or after activation and before covenant expiry.
+- Time/window rules: claims can be opened only during the activation/expiry window, SEC submissions metadata must verify the filing date is on or after activation and on or before expiry, and sponsor-only expiry close is available only after expiry.
 - Size/count bounds: one filing URL and one optional metadata URL, max rendered text length 160000 chars, max 12 decisive fact IDs.
 - Missing evidence: `UNVERIFIABLE`.
 - Contradictory evidence: `UNVERIFIABLE` unless the locked filing itself clearly satisfies or fails the trigger.
@@ -158,8 +162,8 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 ### Leader task
 
 - Inputs: covenant trigger, CIK, allowed form/item, accession, filing URL, activation/expiry window.
-- Fetch: SEC filing text with declared User-Agent.
-- Extraction: identify form, item labels, filing date, event language, and decisive paragraphs.
+- Fetch: SEC submissions metadata and SEC filing text with declared User-Agent.
+- Extraction: verify accession, authoritative SEC filing date, SEC form, item labels, event language, and decisive paragraphs.
 - Normalization: trim text, cap fact IDs, map trigger-specific event class to enum.
 - Structured output: JSON with verdict, trigger kind, form coverage, item coverage, source stage, event class, decisive facts, consequence class, reason.
 
@@ -176,6 +180,7 @@ TRIGGERED --withdraw_credit/beneficiary--> TRIGGERED
 | item_covered | bool | exact | Prevents wrong disclosure item |
 | event_class | locked enum | exact | Captures semantic meaning |
 | source_stage | locked enum | exact | Differentiates unavailable source |
+| filing_date | YYYY-MM-DD from SEC submissions metadata | exact and inside window | Enforces activation/expiry against authoritative SEC data |
 | consequence_class | locked enum | exact | Prevents payout mismatch |
 | decisive_fact_ids | set size 0-12 | subset/equivalent bounded set | Supports semantic replay without prose matching |
 
@@ -216,6 +221,7 @@ Rationale is stored as a bounded summary for explainability only. It is not cons
 - `close_claim(covenant_id)` for stale `UNDETERMINED` recovery.
 - `propose_close(covenant_id)`.
 - `accept_close(covenant_id)`.
+- `close_expired(covenant_id)`.
 - `withdraw_credit(amount)`.
 
 ### View methods
@@ -231,7 +237,7 @@ Rationale is stored as a bounded summary for explainability only. It is not cons
 - Authentication: no callback in v1.
 - Idempotency key: downstream consumers use `covenant_id` and current claim/accession.
 - Failure/retry: read views after finalization; retry only when canonical status permits.
-- Authorized cancellation: sponsor or beneficiary can close expired inactive covenant.
+- Authorized cancellation: sponsor can close an expired inactive covenant; both parties can mutually close an inactive covenant before expiry.
 
 ## Threat model
 
@@ -270,10 +276,12 @@ Rationale is stored as a bounded summary for explainability only. It is not cons
 | SEC filing trigger can be locked with escrow | `open_covenant`, `Covenant.ACTIVE` | `get_covenant` | open/accept tests | deploy + open covenant tx |
 | Only beneficiary can activate claim | `accept_covenant`, `open_claim` sender checks | `get_claim` | unauthorized tests | claim tx actor evidence |
 | Validators judge SEC filing meaning | `adjudicate_claim` nondet + validator | `get_claim` verdict fields | nondet mocked tests | finalized adjudication tx |
+| Filing date window is authoritative | SEC submissions metadata guard | `get_claim.filing_date`, `can_claim` | out-of-window and metadata-failure tests | claim canonical read includes `filing_date: 2026-03-20` |
 | Triggered verdict opens payout credit | `TRIGGERED` settlement | `get_credit`, `get_status` | triggered accounting test | canonical credit read |
 | Not-triggered verdict keeps covenant active | `NOT_TRIGGERED` settlement | `get_status` | not-triggered test | canonical status read |
 | Unverifiable is non-penalizing | `UNVERIFIABLE` settlement | `get_claim`, `get_credit` | source failure test | source failure/retry evidence if run |
 | Credit withdrawal transfers GEN | `withdraw_credit` | `get_credit` | withdraw test | receipt + balance delta |
+| Expiry releases inactive escrow safely | `close_expired`, sponsor-only guard | `get_status`, `get_accounting` | expiry close tests | `expiredRecovery` closed and accounting zero |
 | Duplicate settlement is blocked | settled/event key checks | `can_claim` | duplicate tests | optional duplicate rejection tx |
 
 ## Analogue and differentiation matrix
@@ -301,13 +309,13 @@ Rationale is stored as a bounded summary for explainability only. It is not cons
 
 ### Intelligent Contracts
 
-- [ ] Reusable primitive.
-- [ ] Semantic validator judgment.
-- [ ] Direct consequence.
-- [ ] Reuse proof through documented views.
-- [ ] Adversarial tests.
-- [ ] Real studionet lifecycle.
-- [ ] Canonical evidence.
+- [x] Reusable primitive.
+- [x] Semantic validator judgment.
+- [x] Direct consequence.
+- [x] Reuse proof through documented views.
+- [x] Adversarial tests.
+- [x] Real studionet lifecycle.
+- [x] Canonical evidence.
 
 ### Projects, if selected
 
@@ -315,7 +323,7 @@ Not selected. No frontend is allowed for this submission.
 
 ## Honest limitations
 
-- Source, tests, deployment, public repo, and network lifecycle are pending until implemented.
+- Browser frontend and Vercel deployment are intentionally out of scope for the Intelligent Contracts track.
 - SEC access requires a declared User-Agent and may rate-limit automated callers.
 - V1 supports only fixed trigger enums; arbitrary filing language is out of scope.
 - No legal enforceability beyond the onchain primitive is claimed.
