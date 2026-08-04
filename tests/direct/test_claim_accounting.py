@@ -80,6 +80,36 @@ def test_claim_guards_and_one_active_claim(direct_vm, direct_deploy, direct_alic
         contract.open_claim("cyber-001", "000143774926009194", VALID_SEC_URL)
 
 
+def test_open_claim_rejects_before_activation(direct_vm, direct_deploy, direct_alice, direct_bob):
+    direct_vm.warp("2025-12-31T00:00:00Z")
+    contract = direct_deploy(CONTRACT_PATH)
+    activate_covenant(contract, direct_vm, direct_alice, direct_bob)
+
+    direct_vm.sender = direct_bob
+    direct_vm.value = CLAIM_BOND
+    with direct_vm.expect_revert("Covenant is not within claim window"):
+        contract.open_claim("cyber-001", "000143774926009193", VALID_SEC_URL)
+
+
+def test_open_claim_rejects_after_expiry(direct_vm, direct_deploy, direct_alice, direct_bob):
+    direct_vm.warp("2027-01-02T00:00:00Z")
+    contract = direct_deploy(CONTRACT_PATH)
+    activate_covenant(contract, direct_vm, direct_alice, direct_bob)
+
+    direct_vm.sender = direct_bob
+    direct_vm.value = CLAIM_BOND
+    with direct_vm.expect_revert("Covenant is not within claim window"):
+        contract.open_claim("cyber-001", "000143774926009193", VALID_SEC_URL)
+
+
+def test_can_claim_reflects_claim_window(direct_vm, direct_deploy, direct_alice, direct_bob):
+    direct_vm.warp("2027-01-02T00:00:00Z")
+    contract = direct_deploy(CONTRACT_PATH)
+    activate_covenant(contract, direct_vm, direct_alice, direct_bob)
+
+    assert contract.can_claim("cyber-001", "000143774926009193") is False
+
+
 def test_close_claim_refunds_bond_and_restores_active(direct_vm, direct_deploy, direct_alice, direct_bob):
     contract = direct_deploy(CONTRACT_PATH)
     open_valid_claim(contract, direct_vm, direct_alice, direct_bob)
@@ -129,6 +159,54 @@ def test_bilateral_close_is_blocked_during_open_claim(direct_vm, direct_deploy, 
     direct_vm.sender = direct_alice
     with direct_vm.expect_revert("Open claim blocks close"):
         contract.propose_close("cyber-001")
+
+
+def test_sponsor_can_close_expired_covenant_and_reclaim_escrow(
+    direct_vm, direct_deploy, direct_alice, direct_bob
+):
+    direct_vm.warp("2027-01-02T00:00:00Z")
+    contract = direct_deploy(CONTRACT_PATH)
+    activate_covenant(contract, direct_vm, direct_alice, direct_bob)
+
+    direct_vm.sender = direct_alice
+    contract.close_expired("cyber-001")
+
+    assert contract.get_status("cyber-001") == "CLOSED"
+    assert int(contract.get_credit(to_hex(direct_alice))) == PAYOUT
+    covenant = contract.get_covenant("cyber-001")
+    assert int(covenant.escrow_remaining) == 0
+    accounting = contract.get_accounting()
+    assert int(accounting["locked_escrow"]) == 0
+    assert int(accounting["locked_claim_bonds"]) == 0
+    assert int(accounting["withdrawable_credits"]) == PAYOUT
+
+
+def test_expired_close_rejects_before_expiry(
+    direct_vm, direct_deploy, direct_alice, direct_bob
+):
+    direct_vm.warp("2026-06-01T00:00:00Z")
+    contract = direct_deploy(CONTRACT_PATH)
+    activate_covenant(contract, direct_vm, direct_alice, direct_bob)
+
+    direct_vm.sender = direct_alice
+    with direct_vm.expect_revert("Covenant has not expired"):
+        contract.close_expired("cyber-001")
+
+
+def test_expired_close_rejects_during_open_claim(
+    direct_vm, direct_deploy, direct_alice, direct_bob
+):
+    direct_vm.warp("2026-06-01T00:00:00Z")
+    contract = direct_deploy(CONTRACT_PATH)
+    open_valid_claim(contract, direct_vm, direct_alice, direct_bob)
+    direct_vm.warp("2027-01-02T00:00:00Z")
+    from genlayer import gl
+
+    gl.message_raw["datetime"] = "2027-01-02T00:00:00Z"
+
+    direct_vm.sender = direct_alice
+    with direct_vm.expect_revert("Open claim blocks close"):
+        contract.close_expired("cyber-001")
 
 
 def test_withdrawal_debits_before_external_send(direct_vm, direct_deploy, direct_alice, direct_bob):

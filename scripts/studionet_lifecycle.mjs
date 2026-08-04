@@ -118,11 +118,14 @@ const EVIDENCE_PATH = resolve('docs', 'evidence', 'studionet', 'deployment.json'
 const RPC_URL = studionet.rpcUrls.default.http[0];
 const EXPLORER_URL = 'https://explorer-studio.genlayer.com';
 const COVENANT_ID = 'cyber-001';
+const EXPIRED_COVENANT_ID = 'expired-001';
 const CIK = '732026';
 const ACCESSION = '000143774926009193';
 const FILING_URL = 'https://www.sec.gov/Archives/edgar/data/732026/000143774926009193/trt20260320_8k.htm';
 const PAYOUT_WEI = 10_000_000_000_000_000n;
 const CLAIM_BOND_WEI = 1_000_000_000_000_000n;
+const EXPIRED_PAYOUT_WEI = 2_000_000_000_000_000n;
+const EXPIRED_CLAIM_BOND_WEI = 500_000_000_000_000n;
 const TERMINAL_FAILURES = new Set([
   'UNDETERMINED',
   'CANCELED',
@@ -537,6 +540,96 @@ async function closeDemo() {
   console.log(JSON.stringify(projectSafeEvidence(finalEvidence), null, 2));
 }
 
+async function runExpiryDemo() {
+  const evidence = readEvidence();
+  if (!evidence?.contractAddress) {
+    throw new Error('Run deploy before run-expiry-demo');
+  }
+  const { sponsor, beneficiary } = loadAccounts();
+  const sponsorClient = signingClient(sponsor);
+  const beneficiaryClient = signingClient(beneficiary);
+  await assertStudionet(sponsorClient);
+  const address = evidence.contractAddress;
+  const transactions = { ...(evidence.transactions ?? {}) };
+  const persistPending = (name) => (pending) => {
+    transactions[name] = pending;
+    writeEvidence({ ...evidence, transactions });
+  };
+
+  transactions.expiredOpenCovenant = await writeFinalized(
+    sponsorClient,
+    address,
+    'open_covenant',
+    [
+      EXPIRED_COVENANT_ID,
+      beneficiary.address,
+      CIK,
+      'MATERIAL_CYBER_INCIDENT',
+      '8-K',
+      'Item 1.05',
+      '2025-01-01',
+      '2025-12-31',
+      EXPIRED_PAYOUT_WEI,
+      EXPIRED_CLAIM_BOND_WEI,
+    ],
+    EXPIRED_PAYOUT_WEI,
+    transactions.expiredOpenCovenant,
+    persistPending('expiredOpenCovenant'),
+  );
+  transactions.expiredAcceptCovenant = await writeFinalized(
+    beneficiaryClient,
+    address,
+    'accept_covenant',
+    [EXPIRED_COVENANT_ID],
+    0n,
+    transactions.expiredAcceptCovenant,
+    persistPending('expiredAcceptCovenant'),
+  );
+  transactions.expiredClose = await writeFinalized(
+    sponsorClient,
+    address,
+    'close_expired',
+    [EXPIRED_COVENANT_ID],
+    0n,
+    transactions.expiredClose,
+    persistPending('expiredClose'),
+  );
+
+  const sponsorCreditBeforeWithdraw = await readView(sponsorClient, address, 'get_credit', [sponsor.address]);
+  if (BigInt(sponsorCreditBeforeWithdraw) > 0n) {
+    transactions.withdrawExpiredSponsorCredit = await writeFinalized(
+      sponsorClient,
+      address,
+      'withdraw_credit',
+      [BigInt(sponsorCreditBeforeWithdraw)],
+      0n,
+      transactions.withdrawExpiredSponsorCredit,
+      persistPending('withdrawExpiredSponsorCredit'),
+    );
+  }
+
+  const canonicalReads = {
+    ...(evidence.canonicalReads ?? {}),
+    expiredRecovery: {
+      covenantId: EXPIRED_COVENANT_ID,
+      status: await readView(sponsorClient, address, 'get_status', [EXPIRED_COVENANT_ID]),
+      covenant: await readView(sponsorClient, address, 'get_covenant', [EXPIRED_COVENANT_ID]),
+      sponsorCreditBeforeWithdraw,
+      sponsorCreditAfterWithdraw: await readView(sponsorClient, address, 'get_credit', [sponsor.address]),
+      accounting: await readView(sponsorClient, address, 'get_accounting', []),
+    },
+  };
+  const finalEvidence = writeEvidence({
+    ...evidence,
+    result: 'SUCCESS',
+    contractAddress: address,
+    transactionHash: evidence.transactionHash,
+    transactions,
+    canonicalReads,
+  });
+  console.log(JSON.stringify(projectSafeEvidence(finalEvidence), null, 2));
+}
+
 async function inspect() {
   const projectEnv = readTextIfExists(resolve('.env'));
   const parentEnv = readTextIfExists(resolve('..', '.env'));
@@ -570,6 +663,10 @@ async function main() {
   }
   if (command === 'close-demo') {
     await closeDemo();
+    return;
+  }
+  if (command === 'run-expiry-demo') {
+    await runExpiryDemo();
     return;
   }
   console.error(`Unknown command: ${command}`);

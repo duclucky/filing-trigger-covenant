@@ -15,6 +15,7 @@ SEC_TEXT = (
     "detected a cybersecurity incident that may constitute a material "
     "cybersecurity event. The company is investigating unauthorized access."
 )
+ACCESSION_DASHED = "0001437749-26-009193"
 
 
 def sec_result(**overrides):
@@ -36,10 +37,71 @@ def setup_claim(direct_deploy, vm, sponsor, beneficiary):
     return contract
 
 
-def mock_sec(vm, result, status=200, body=SEC_TEXT):
+def setup_claim_with_window(direct_deploy, vm, sponsor, beneficiary, activation_date, expiry_date):
+    contract = direct_deploy(CONTRACT_PATH)
+    vm.sender = sponsor
+    vm.value = PAYOUT
+    contract.open_covenant(
+        "cyber-001",
+        to_hex(beneficiary),
+        "732026",
+        "MATERIAL_CYBER_INCIDENT",
+        "8-K",
+        "Item 1.05",
+        activation_date,
+        expiry_date,
+        PAYOUT,
+        CLAIM_BOND,
+    )
+    contract_address = vm._contract_address
+    current_balance = vm._balances.get(bytes(contract_address), 0)
+    vm.deal(contract_address, current_balance + PAYOUT)
+    vm.value = 0
+
+    vm.sender = beneficiary
+    contract.accept_covenant("cyber-001")
+    vm.value = CLAIM_BOND
+    contract.open_claim("cyber-001", "000143774926009193", VALID_SEC_URL)
+    current_balance = vm._balances.get(bytes(contract_address), 0)
+    vm.deal(contract_address, current_balance + CLAIM_BOND)
+    vm.value = 0
+    return contract
+
+
+def sec_metadata(filing_date="2026-03-20", form="8-K", accession=ACCESSION_DASHED):
+    return json.dumps(
+        {
+            "filings": {
+                "recent": {
+                    "accessionNumber": [accession],
+                    "filingDate": [filing_date],
+                    "form": [form],
+                    "primaryDocument": ["trt20260320_8k.htm"],
+                }
+            }
+        }
+    )
+
+
+def mock_sec(
+    vm,
+    result,
+    status=200,
+    body=SEC_TEXT,
+    metadata_status=200,
+    metadata_body=None,
+    filing_date="2026-03-20",
+    form="8-K",
+):
     vm.mock_web(
         r".*sec\.gov/Archives/edgar/data/732026/000143774926009193/.*",
         {"method": "GET", "status": status, "body": body},
+    )
+    if metadata_body is None:
+        metadata_body = sec_metadata(filing_date=filing_date, form=form)
+    vm.mock_web(
+        r".*data\.sec\.gov/submissions/CIK0000732026\.json.*",
+        {"method": "GET", "status": metadata_status, "body": metadata_body},
     )
     vm.mock_llm(
         r"(?s).*FilingTriggerCovenant SEC filing adjudicator.*",
@@ -70,6 +132,57 @@ def test_triggered_verdict_credits_beneficiary_and_closes_covenant(
     assert int(contract.get_covenant("cyber-001").escrow_remaining) == 0
     assert contract.can_claim("cyber-001", "000143774926009193") is False
     assert direct_vm.run_validator() is True
+
+
+def test_authoritative_filing_date_outside_window_cannot_pay(
+    direct_vm, direct_deploy, direct_alice, direct_bob
+):
+    contract = setup_claim_with_window(
+        direct_deploy,
+        direct_vm,
+        direct_alice,
+        direct_bob,
+        "2026-04-01",
+        "2026-12-31",
+    )
+    mock_sec(direct_vm, sec_result(), filing_date="2026-03-20")
+
+    result = contract.adjudicate_claim("cyber-001")
+
+    claim = contract.get_claim("cyber-001")
+    assert result["verdict"] == "NOT_TRIGGERED"
+    assert result["source_stage"] == "OUT_OF_WINDOW"
+    assert result["consequence_class"] == "CREDIT_SPONSOR_BOND"
+    assert result["filing_date"] == "2026-03-20"
+    assert claim.filing_date == "2026-03-20"
+    assert contract.get_status("cyber-001") == "ACTIVE"
+    assert int(contract.get_credit(to_hex(direct_alice))) == CLAIM_BOND
+    assert int(contract.get_credit(to_hex(direct_bob))) == 0
+    assert int(contract.get_covenant("cyber-001").escrow_remaining) == PAYOUT
+    assert direct_vm.run_validator() is True
+
+
+def test_missing_sec_metadata_is_unverifiable_and_non_penalizing(
+    direct_vm, direct_deploy, direct_alice, direct_bob
+):
+    contract = setup_claim(direct_deploy, direct_vm, direct_alice, direct_bob)
+    mock_sec(
+        direct_vm,
+        sec_result(),
+        metadata_status=503,
+        metadata_body="unavailable",
+    )
+
+    result = contract.adjudicate_claim("cyber-001")
+
+    claim = contract.get_claim("cyber-001")
+    assert result["verdict"] == "UNVERIFIABLE"
+    assert result["source_stage"] == "METADATA_FAILED"
+    assert result["consequence_class"] == "REFUND_CLAIM_BOND"
+    assert claim.status == "RETRYABLE"
+    assert contract.get_status("cyber-001") == "ACTIVE"
+    assert int(contract.get_credit(to_hex(direct_bob))) == CLAIM_BOND
+    assert int(contract.get_covenant("cyber-001").escrow_remaining) == PAYOUT
 
 
 def test_not_triggered_keeps_active_and_credits_sponsor(

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 MAX_ID_LENGTH = 64
 SEC_ARCHIVE_PREFIX = "https://www.sec.gov/Archives/edgar/data/"
+SEC_SUBMISSIONS_PREFIX = "https://data.sec.gov/submissions/CIK"
 COVENANT_STATUSES = ("DRAFT", "ACTIVE", "CLAIM_OPEN", "TRIGGERED", "CLOSED")
 TRIGGER_KINDS = (
     "MATERIAL_CYBER_INCIDENT",
@@ -17,6 +18,7 @@ TRIGGER_KINDS = (
 )
 SEC_USER_AGENT = "FilingTriggerCovenant/1.0 contact@example.com"
 MAX_SOURCE_CHARS = 160000
+MAX_METADATA_CHARS = 700000
 MAX_RATIONALE_CHARS = 600
 VERDICTS = ("TRIGGERED", "NOT_TRIGGERED", "UNVERIFIABLE")
 EVENT_CLASSES = (
@@ -68,6 +70,7 @@ class Claim:
     status: str
     verdict: str
     source_stage: str
+    filing_date: str
     consequence_class: str
     event_class: str
     decisive_fact_ids: str
@@ -133,6 +136,40 @@ def _date_number(value: str) -> int:
     return year * 10000 + month * 100 + day
 
 
+def _safe_date_number(value: str) -> int:
+    try:
+        return _date_number(value)
+    except Exception:
+        return 0
+
+
+def _message_date_number() -> int:
+    try:
+        raw = str(gl.message_raw.get("datetime", ""))
+    except Exception:
+        raw = ""
+    if len(raw) < 10:
+        raise gl.vm.UserError("Current transaction date unavailable")
+    return _date_number(raw[0:10])
+
+
+def _zero_pad_cik(cik: str) -> str:
+    result = str(cik)
+    while len(result) < 10:
+        result = "0" + result
+    return result
+
+
+def _accession_dashed(accession: str) -> str:
+    if len(accession) < 12:
+        return accession
+    return accession[0:10] + "-" + accession[10:12] + "-" + accession[12:]
+
+
+def _submissions_url(cik: str) -> str:
+    return SEC_SUBMISSIONS_PREFIX + _zero_pad_cik(cik) + ".json"
+
+
 def _allowed_form_for_trigger(trigger_kind: str, allowed_form: str) -> bool:
     if trigger_kind == "MATERIAL_CYBER_INCIDENT":
         return allowed_form == "8-K"
@@ -169,6 +206,78 @@ def _parse_json_object(raw) -> dict:
     if not isinstance(parsed, dict):
         raise ValueError("Expected JSON object")
     return parsed
+
+
+def _metadata_list(recent: dict, key: str) -> list:
+    value = recent.get(key, [])
+    if isinstance(value, list):
+        return value
+    return []
+
+
+def _metadata_form_matches(metadata_form: str, allowed_form: str) -> bool:
+    form = str(metadata_form).upper()
+    allowed = str(allowed_form).upper()
+    return form == allowed or form == allowed + "/A"
+
+
+def _find_sec_metadata(raw, accession: str) -> dict:
+    try:
+        parsed = _parse_json_object(raw)
+        filings = parsed.get("filings", {})
+        if not isinstance(filings, dict):
+            return {"stage": "METADATA_MALFORMED", "filing_date": "", "form": ""}
+        recent = filings.get("recent", {})
+        if not isinstance(recent, dict):
+            return {"stage": "METADATA_MALFORMED", "filing_date": "", "form": ""}
+        accessions = _metadata_list(recent, "accessionNumber")
+        filing_dates = _metadata_list(recent, "filingDate")
+        forms = _metadata_list(recent, "form")
+        target_dashed = _accession_dashed(accession)
+        for index in range(len(accessions)):
+            candidate = str(accessions[index])
+            candidate_plain = candidate.replace("-", "")
+            if candidate == target_dashed or candidate_plain == accession:
+                filing_date = ""
+                form = ""
+                if index < len(filing_dates):
+                    filing_date = str(filing_dates[index])
+                if index < len(forms):
+                    form = str(forms[index]).upper()
+                if _safe_date_number(filing_date) == 0:
+                    return {
+                        "stage": "METADATA_MALFORMED",
+                        "filing_date": "",
+                        "form": form,
+                    }
+                return {
+                    "stage": "FOUND",
+                    "filing_date": filing_date,
+                    "form": form,
+                }
+    except Exception:
+        return {"stage": "METADATA_MALFORMED", "filing_date": "", "form": ""}
+    return {"stage": "ACCESSION_NOT_FOUND", "filing_date": "", "form": ""}
+
+
+def _guard_result(
+    verdict: str,
+    source_stage: str,
+    consequence_class: str,
+    rationale: str,
+    filing_date: str,
+) -> dict:
+    return {
+        "verdict": verdict,
+        "event_class": "UNKNOWN" if verdict != "NOT_TRIGGERED" else "NO_LOCKED_EVENT",
+        "form_covered": False,
+        "item_covered": False,
+        "decisive_fact_ids": [],
+        "source_stage": source_stage,
+        "filing_date": filing_date,
+        "consequence_class": consequence_class,
+        "rationale": rationale[:MAX_RATIONALE_CHARS],
+    }
 
 
 def _canonical_fact_ids(value) -> list[str]:
@@ -244,18 +353,16 @@ def _normalize_sec_result(
     trigger_kind: str,
     allowed_form: str,
     allowed_item: str,
+    filing_date: str,
 ) -> dict:
     if source_stage != "SUFFICIENT":
-        return {
-            "verdict": "UNVERIFIABLE",
-            "event_class": "UNKNOWN",
-            "form_covered": False,
-            "item_covered": False,
-            "decisive_fact_ids": [],
-            "source_stage": "FAILED",
-            "consequence_class": "REFUND_CLAIM_BOND",
-            "rationale": "SEC source unavailable or outside bounds.",
-        }
+        return _guard_result(
+            "UNVERIFIABLE",
+            source_stage,
+            "REFUND_CLAIM_BOND",
+            "SEC source unavailable or outside bounds.",
+            filing_date,
+        )
     try:
         parsed = _parse_json_object(raw)
     except Exception:
@@ -306,6 +413,7 @@ def _normalize_sec_result(
         "item_covered": item_covered,
         "decisive_fact_ids": decisive_fact_ids,
         "source_stage": "SUFFICIENT",
+        "filing_date": filing_date,
         "consequence_class": _consequence_for_verdict(verdict),
         "rationale": rationale,
     }
@@ -323,6 +431,8 @@ def _verdict_fingerprint(result: dict) -> str:
         + str(result.get("item_covered", ""))
         + "|"
         + str(result.get("source_stage", ""))
+        + "|"
+        + str(result.get("filing_date", ""))
         + "|"
         + str(result.get("consequence_class", ""))
         + "|"
@@ -422,6 +532,12 @@ class Contract(gl.Contract):
             raise gl.vm.UserError("Covenant is not active")
         if _addr_str(_sender()) != _addr_str(covenant.beneficiary):
             raise gl.vm.UserError("Only beneficiary can open claim")
+        current_date = _message_date_number()
+        if (
+            current_date < _date_number(covenant.activation_date)
+            or current_date > _date_number(covenant.expiry_date)
+        ):
+            raise gl.vm.UserError("Covenant is not within claim window")
         received = bigint(int(gl.message.value))
         if int(received) != int(covenant.claim_bond_amount):
             raise gl.vm.UserError("Claim bond value must equal configured amount")
@@ -441,6 +557,7 @@ class Contract(gl.Contract):
             status="OPEN",
             verdict="PENDING",
             source_stage="PENDING",
+            filing_date="",
             consequence_class="PENDING",
             event_class="PENDING",
             decisive_fact_ids="",
@@ -465,6 +582,7 @@ class Contract(gl.Contract):
         claim.status = "CLOSED"
         claim.verdict = "UNVERIFIABLE"
         claim.source_stage = "CLOSED"
+        claim.filing_date = ""
         claim.consequence_class = "REFUND_CLAIM_BOND"
         claim.event_class = "UNKNOWN"
         claim.decisive_fact_ids = ""
@@ -516,6 +634,26 @@ class Contract(gl.Contract):
         covenant.close_proposed_by = Address(ZERO_ADDRESS)
 
     @gl.public.write
+    def close_expired(self, covenant_id: str) -> None:
+        covenant = self.get_covenant(covenant_id)
+        if _addr_str(_sender()) != _addr_str(covenant.sponsor):
+            raise gl.vm.UserError("Only sponsor can close expired covenant")
+        if covenant.status == "CLAIM_OPEN":
+            raise gl.vm.UserError("Open claim blocks close")
+        if covenant.status != "DRAFT" and covenant.status != "ACTIVE":
+            raise gl.vm.UserError("Covenant cannot be closed")
+        if _message_date_number() <= _date_number(covenant.expiry_date):
+            raise gl.vm.UserError("Covenant has not expired")
+
+        remaining = bigint(int(covenant.escrow_remaining))
+        if int(remaining) > 0:
+            self._credit(covenant.sponsor, remaining)
+        covenant.escrow_remaining = bigint(0)
+        covenant.status = "CLOSED"
+        covenant.active_claim_id = ""
+        covenant.close_proposed_by = Address(ZERO_ADDRESS)
+
+    @gl.public.write
     def adjudicate_claim(self, covenant_id: str) -> dict:
         covenant = self.get_covenant(covenant_id)
         if covenant.status != "CLAIM_OPEN":
@@ -531,25 +669,81 @@ class Contract(gl.Contract):
         allowed_item = covenant.allowed_item
         cik = covenant.cik
         accession = claim.accession
+        activation_date = covenant.activation_date
+        expiry_date = covenant.expiry_date
+        metadata_url = _submissions_url(cik)
 
         def evaluate():
+            filing_date = ""
             try:
+                metadata_response = gl.nondet.web.get(
+                    metadata_url,
+                    headers={"User-Agent": SEC_USER_AGENT},
+                )
+                if metadata_response.status != 200 or metadata_response.body is None:
+                    return _guard_result(
+                        "UNVERIFIABLE",
+                        "METADATA_FAILED",
+                        "REFUND_CLAIM_BOND",
+                        "SEC submissions metadata unavailable.",
+                        "",
+                    )
+                metadata_body = metadata_response.body.decode("utf-8")
+                if len(metadata_body) > MAX_METADATA_CHARS:
+                    return _guard_result(
+                        "UNVERIFIABLE",
+                        "METADATA_FAILED",
+                        "REFUND_CLAIM_BOND",
+                        "SEC submissions metadata outside bounds.",
+                        "",
+                    )
+                metadata = _find_sec_metadata(metadata_body, accession)
+                if metadata["stage"] != "FOUND":
+                    return _guard_result(
+                        "UNVERIFIABLE",
+                        str(metadata["stage"]),
+                        "REFUND_CLAIM_BOND",
+                        "SEC submissions metadata did not verify the accession.",
+                        str(metadata.get("filing_date", "")),
+                    )
+                filing_date = str(metadata["filing_date"])
+                filing_num = _safe_date_number(filing_date)
+                if (
+                    filing_num < _date_number(activation_date)
+                    or filing_num > _date_number(expiry_date)
+                ):
+                    return _guard_result(
+                        "NOT_TRIGGERED",
+                        "OUT_OF_WINDOW",
+                        "CREDIT_SPONSOR_BOND",
+                        "Authoritative SEC filing date is outside the covenant window.",
+                        filing_date,
+                    )
+                if not _metadata_form_matches(str(metadata["form"]), allowed_form):
+                    return _guard_result(
+                        "NOT_TRIGGERED",
+                        "FORM_MISMATCH",
+                        "CREDIT_SPONSOR_BOND",
+                        "Authoritative SEC filing form does not match the covenant form.",
+                        filing_date,
+                    )
+
                 response = gl.nondet.web.get(
                     filing_url,
                     headers={"User-Agent": SEC_USER_AGENT},
                 )
                 if response.status != 200 or response.body is None:
                     return _normalize_sec_result(
-                        {}, "FAILED", "", trigger_kind, allowed_form, allowed_item
+                        {}, "FAILED", "", trigger_kind, allowed_form, allowed_item, filing_date
                     )
                 body = response.body.decode("utf-8")
                 if len(body) > MAX_SOURCE_CHARS:
                     return _normalize_sec_result(
-                        {}, "FAILED", "", trigger_kind, allowed_form, allowed_item
+                        {}, "FAILED", "", trigger_kind, allowed_form, allowed_item, filing_date
                     )
             except Exception:
                 return _normalize_sec_result(
-                    {}, "FAILED", "", trigger_kind, allowed_form, allowed_item
+                    {}, "FAILED", "", trigger_kind, allowed_form, allowed_item, filing_date
                 )
 
             prompt = (
@@ -564,6 +758,12 @@ class Contract(gl.Contract):
                 + allowed_form
                 + "\nAllowed item: "
                 + allowed_item
+                + "\nActivation date: "
+                + activation_date
+                + "\nExpiry date: "
+                + expiry_date
+                + "\nAuthoritative SEC filing date: "
+                + filing_date
                 + "\nAllowed verdicts: TRIGGERED, NOT_TRIGGERED, UNVERIFIABLE.\n"
                 + "Allowed event classes: MATERIAL_CYBER_INCIDENT, MERGER_COMPLETED, "
                 + "GOING_CONCERN_WARNING, NO_LOCKED_EVENT, UNKNOWN.\n"
@@ -577,7 +777,7 @@ class Contract(gl.Contract):
             )
             raw = gl.nondet.exec_prompt(prompt, response_format="json")
             return _normalize_sec_result(
-                raw, "SUFFICIENT", body, trigger_kind, allowed_form, allowed_item
+                raw, "SUFFICIENT", body, trigger_kind, allowed_form, allowed_item, filing_date
             )
 
         def validator_fn(leader_result) -> bool:
@@ -606,6 +806,7 @@ class Contract(gl.Contract):
         facts = ",".join(result["decisive_fact_ids"])
         claim.verdict = verdict
         claim.source_stage = str(result["source_stage"])
+        claim.filing_date = str(result.get("filing_date", ""))
         claim.consequence_class = consequence
         claim.event_class = str(result["event_class"])
         claim.decisive_fact_ids = facts
@@ -698,8 +899,17 @@ class Contract(gl.Contract):
     @gl.public.view
     def can_claim(self, covenant_id: str, accession: str) -> bool:
         covenant = self.get_covenant(covenant_id)
-        return covenant.status == "ACTIVE" and not self.event_keys.get(
-            covenant.cik + ":" + accession + ":" + covenant.trigger_kind, False
+        current_date = _message_date_number()
+        within_window = (
+            current_date >= _date_number(covenant.activation_date)
+            and current_date <= _date_number(covenant.expiry_date)
+        )
+        return (
+            covenant.status == "ACTIVE"
+            and within_window
+            and not self.event_keys.get(
+                covenant.cik + ":" + accession + ":" + covenant.trigger_kind, False
+            )
         )
 
     @gl.public.view
